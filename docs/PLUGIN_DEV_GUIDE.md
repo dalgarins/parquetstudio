@@ -14,8 +14,8 @@ This guide covers development setup, architecture, and best practices for workin
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/jhordyhuaman/parquet-studio.git
-   cd parquet-studio
+   git clone https://github.com/jhordyhuaman/parquetstudio.git
+   cd parquetstudio
    ```
 
 2. **Open in IntelliJ IDEA**:
@@ -34,7 +34,7 @@ This guide covers development setup, architecture, and best practices for workin
 ## Project Structure
 
 ```
-parquet-studio/
+parquetstudio/
 ├── src/
 │   ├── main/
 │   │   ├── java/
@@ -269,7 +269,7 @@ We use a simple service pattern:
 
 ## Getting Help
 
-- Check existing [Issues](https://github.com/jhordyhuaman/parquet-studio/issues)
+- Check existing [Issues](https://github.com/jhordyhuaman/parquetstudio/issues)
 - Review [Architecture](ARCHITECTURE.md) docs
-- Open a [Discussion](https://github.com/jhordyhuaman/parquet-studio/discussions)
+- Open a [Discussion](https://github.com/jhordyhuaman/parquetstudio/discussions)
 

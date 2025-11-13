@@ -1,6 +1,6 @@
 # Parquet Studio
 
-[![Build](https://github.com/jhordyhuaman/parquet-studio/actions/workflows/build.yml/badge.svg)](https://github.com/jhordyhuaman/parquet-studio/actions/workflows/build.yml)
+[![Build](https://github.com/jhordyhuaman/parquetstudio/actions/workflows/build.yml/badge.svg)](https://github.com/jhordyhuaman/parquetstudio/actions/workflows/build.yml)
 [![Version](https://img.shields.io/jetbrains/plugin/v/com.github.jhordyhuaman.parquetstudio.svg)](https://plugins.jetbrains.com/plugin/com.github.jhordyhuaman.parquetstudio)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/com.github.jhordyhuaman.parquetstudio.svg)](https://plugins.jetbrains.com/plugin/com.github.jhordyhuaman.parquetstudio)
 
@@ -101,7 +101,7 @@ Licensed under the Apache License, Version 2.0. See [LICENSE.txt](LICENSE.txt) f
 
 - **Author**: Jhordy Huaman
 - **GitHub**: [@jhordyhuaman](https://github.com/jhordyhuaman)
-- **Issues**: [GitHub Issues](https://github.com/jhordyhuaman/parquet-studio/issues)
+- **Issues**: [GitHub Issues](https://github.com/jhordyhuaman/parquetstudio/issues)
 
 ---
 

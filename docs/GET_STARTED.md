@@ -15,7 +15,7 @@ This guide will help you get started with Parquet Studio, from installation to a
 
 ### From Disk
 
-1. Download the plugin ZIP from [Releases](https://github.com/jhordyhuaman/parquet-studio/releases)
+1. Download the plugin ZIP from [Releases](https://github.com/jhordyhuaman/parquetstudio/releases)
 2. Open IntelliJ IDEA
 3. Navigate to `File` → `Settings` → `Plugins`
 4. Click the gear icon → `Install Plugin from Disk...`
@@ -149,7 +149,7 @@ This error indicates the DuckDB driver is not loaded. Ensure:
 ## Support
 
 If you encounter issues:
-1. Check the [GitHub Issues](https://github.com/jhordyhuaman/parquet-studio/issues)
+1. Check the [GitHub Issues](https://github.com/jhordyhuaman/parquetstudio/issues)
 2. Create a new issue with details
 3. Include IDE logs if possible
 

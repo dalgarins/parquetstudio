@@ -13,7 +13,7 @@ Thank you for your interest in contributing to Parquet Studio! This document pro
 
 ### Reporting Bugs
 
-1. Check if the bug has already been reported in [Issues](https://github.com/jhordyhuaman/parquet-studio/issues)
+1. Check if the bug has already been reported in [Issues](https://github.com/jhordyhuaman/parquetstudio/issues)
 2. If not, create a new issue using the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md)
 3. Include:
    - Steps to reproduce
@@ -69,8 +69,8 @@ Thank you for your interest in contributing to Parquet Studio! This document pro
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/jhordyhuaman/parquet-studio.git
-   cd parquet-studio
+   git clone https://github.com/jhordyhuaman/parquetstudio.git
+   cd parquetstudio
    ```
 
 2. Open in IntelliJ IDEA:
@@ -204,8 +204,8 @@ See [RELEASING.md](RELEASING.md) for details on the release process.
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/jhordyhuaman/parquet-studio/discussions)
-- Check existing [Issues](https://github.com/jhordyhuaman/parquet-studio/issues)
+- Open a [Discussion](https://github.com/jhordyhuaman/parquetstudio/discussions)
+- Check existing [Issues](https://github.com/jhordyhuaman/parquetstudio/issues)
 - Review [Plugin Development Guide](PLUGIN_DEV_GUIDE.md)
 
 Thank you for contributing! 🎉

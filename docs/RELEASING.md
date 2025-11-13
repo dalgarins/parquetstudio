@@ -39,7 +39,7 @@ Add a new section in `CHANGELOG.md`:
 - Fixed issue with date parsing
 - Improved error messages
 
-[1.0.1]: https://github.com/jhordyhuaman/parquet-studio/releases/tag/v1.0.1
+[1.0.1]: https://github.com/jhordyhuaman/parquetstudio/releases/tag/v1.0.1
 ```
 
 ### 3. Commit Changes
@@ -67,7 +67,7 @@ The plugin ZIP will be in `build/distributions/`.
 
 ### 6. Create GitHub Release
 
-1. Go to [Releases](https://github.com/jhordyhuaman/parquet-studio/releases)
+1. Go to [Releases](https://github.com/jhordyhuaman/parquetstudio/releases)
 2. Click "Draft a new release"
 3. Select the tag (e.g., `v1.0.1`)
 4. Title: `v1.0.1`
