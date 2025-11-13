@@ -1,8 +1,8 @@
 # Parquet Studio
 
 [![Build](https://github.com/jhordyhuaman/parquetstudio/actions/workflows/build.yml/badge.svg)](https://github.com/jhordyhuaman/parquetstudio/actions/workflows/build.yml)
-[![Version](https://img.shields.io/jetbrains/plugin/v/com.github.jhordyhuaman.parquetstudio.svg)](https://plugins.jetbrains.com/plugin/com.github.jhordyhuaman.parquetstudio)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/com.github.jhordyhuaman.parquetstudio.svg)](https://plugins.jetbrains.com/plugin/com.github.jhordyhuaman.parquetstudio)
+[![Version](https://img.shields.io/jetbrains/plugin/v/com.github.jhordyhuaman.parquetstudio.svg)](https://plugins.jetbrains.com/plugin/29009-parquet-studio)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/com.github.jhordyhuaman.parquetstudio.svg)](https://plugins.jetbrains.com/plugin/29009-parquet-studio)
 
 **Professional CRUD editor for Parquet files directly in IntelliJ IDEA**
 
