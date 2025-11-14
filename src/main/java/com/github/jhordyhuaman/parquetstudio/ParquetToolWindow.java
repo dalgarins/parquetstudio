@@ -354,7 +354,7 @@ public class ParquetToolWindow extends JPanel {
                       "File saved successfully: " + outputFile.getPath(), "Success");
                 } catch (Exception e) {
                   LOGGER.error("Error saving Parquet file", e);
-                  Messages.showErrorDialog("Error saving file: " + e.getMessage(), "Error");
+                  Messages.showErrorDialog("Error saving file: " + e.getCause().getMessage(), "Error");
                   statusLabel.setText("Error saving file.");
                 }
               }

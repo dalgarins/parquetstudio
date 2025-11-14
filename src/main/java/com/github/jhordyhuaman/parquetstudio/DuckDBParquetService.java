@@ -26,7 +26,7 @@ import java.util.Locale;
 /**
  * Service for reading and writing Parquet files using DuckDB.
  */
-public class DuckDBParquetService {
+public class DuckDBParquetService implements DataConvertService {
   private static final Logger LOGGER = Logger.getInstance(DuckDBParquetService.class);
   private static final String DUCKDB_JDBC_URL = "jdbc:duckdb:";
   private static boolean driverLoaded = false;
@@ -130,6 +130,8 @@ public class DuckDBParquetService {
     if (!driverLoaded) {
       throw new SQLException("DuckDB JDBC driver not loaded. Check classpath for org.duckdb:duckdb_jdbc dependency.");
     }
+
+    convertTypes(data, "D:\\test_schema.output.schema");
 
     LOGGER.info("Attempting to create connection to: " + DUCKDB_JDBC_URL);
     try (Connection conn = DriverManager.getConnection(DUCKDB_JDBC_URL)) {
