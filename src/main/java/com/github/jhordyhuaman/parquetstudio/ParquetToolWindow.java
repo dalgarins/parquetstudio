@@ -20,9 +20,13 @@ import java.awt.BorderLayout;
 import java.io.File;
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.RowFilter;
+import java.awt.Component;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Main tool window panel for Parquet Studio.
@@ -37,7 +41,9 @@ public class ParquetToolWindow extends JPanel {
   private JTextField searchField;
   private JButton searchButton;
   private JButton addRowButton;
+  private JButton addColumnButton;
   private JButton deleteRowButton;
+  private JButton deleteColumnButton;
   private JButton saveAsButton;
   private TableRowSorter<TableModel> rowSorter;
   private File currentFile;
@@ -97,6 +103,18 @@ public class ParquetToolWindow extends JPanel {
     addRowButton.addActionListener(e -> addRow());
     toolbar.add(addRowButton);
 
+    // Add Column
+    addColumnButton = new JButton("Add Column");
+    addColumnButton.addActionListener(e -> addColumn());
+    toolbar.add(addColumnButton);
+
+    // Delete Column
+    deleteColumnButton = new JButton("Delete Column");
+    deleteColumnButton.addActionListener(e -> deleteSelectedColumn());
+    toolbar.add(deleteColumnButton);
+
+    toolbar.add(new JSeparator(SwingConstants.VERTICAL));
+
     // Delete Row
     deleteRowButton = new JButton("Delete Row");
     deleteRowButton.addActionListener(e -> deleteSelectedRows());
@@ -117,6 +135,8 @@ public class ParquetToolWindow extends JPanel {
   private void updateButtonStates(boolean hasData) {
     if (searchButton != null) searchButton.setEnabled(hasData);
     if (addRowButton != null) addRowButton.setEnabled(hasData);
+    if (addColumnButton != null) addColumnButton.setEnabled(hasData);
+    if (deleteColumnButton != null) deleteColumnButton.setEnabled(hasData);
     if (deleteRowButton != null) deleteRowButton.setEnabled(hasData);
     if (saveAsButton != null) saveAsButton.setEnabled(hasData);
     if (searchField != null) searchField.setEnabled(hasData);
@@ -164,6 +184,9 @@ public class ParquetToolWindow extends JPanel {
                 tableModel = new ParquetTableModel(
                     data.getColumnNames(), data.getColumnTypes(), data.getRows());
                 dataTable.setModel(tableModel);
+
+                // Configure cell editor for all columns (especially needed for DATE and TIMESTAMP)
+                configureCellEditors();
 
                 rowSorter = new TableRowSorter<>(tableModel);
                 dataTable.setRowSorter(rowSorter);
@@ -238,6 +261,127 @@ public class ParquetToolWindow extends JPanel {
     } catch (Exception e) {
       LOGGER.error("Error adding row", e);
       Messages.showErrorDialog("Error adding row: " + e.getMessage(), "Error");
+    }
+  }
+
+  private void addColumn() {
+    if (tableModel == null) {
+      Messages.showErrorDialog("No data loaded. Please open a file first.", "Error");
+      return;
+    }
+
+    try {
+      AddColumnDialog dialog = new AddColumnDialog(this);
+      if (dialog.showAndGet()) {
+        String columnName = dialog.getColumnName();
+        String columnType = dialog.getColumnType();
+        
+        tableModel.addColumn(columnName, columnType);
+        
+        // Configure cell editor for the new column
+        TableCellEditor textEditor = new DefaultCellEditor(new JTextField()) {
+          @Override
+          public Component getTableCellEditorComponent(JTable table, Object value,
+              boolean isSelected, int row, int column) {
+            Component component = super.getTableCellEditorComponent(table, value, isSelected, row, column);
+            JTextField textField = (JTextField) component;
+            
+            // Convert value to String for display
+            if (value == null) {
+              textField.setText("");
+            } else if (value instanceof LocalDate) {
+              textField.setText(value.toString());
+            } else if (value instanceof LocalDateTime) {
+              textField.setText(value.toString());
+            } else {
+              textField.setText(value.toString());
+            }
+            
+            return component;
+          }
+          
+          @Override
+          public Object getCellEditorValue() {
+            JTextField textField = (JTextField) getComponent();
+            return textField.getText();
+          }
+        };
+        int newColumnIndex = tableModel.getColumnCount() - 1;
+        if (newColumnIndex >= 0) {
+          dataTable.getColumnModel().getColumn(newColumnIndex).setCellEditor(textEditor);
+          
+          // Scroll to the new column
+          dataTable.scrollRectToVisible(
+              dataTable.getCellRect(0, newColumnIndex, true));
+          // Select the new column header
+          dataTable.getColumnModel().getSelectionModel()
+              .setSelectionInterval(newColumnIndex, newColumnIndex);
+        }
+        
+        updateStatusLabel();
+        LOGGER.info("Added column: " + columnName + " (" + columnType + ")");
+      }
+    } catch (IllegalArgumentException e) {
+      LOGGER.error("Error adding column", e);
+      Messages.showErrorDialog("Error adding column: " + e.getMessage(), "Error");
+    } catch (Exception e) {
+      LOGGER.error("Error adding column", e);
+      Messages.showErrorDialog("Error adding column: " + e.getMessage(), "Error");
+    }
+  }
+
+  private void deleteSelectedColumn() {
+    if (tableModel == null) {
+      Messages.showErrorDialog("No data loaded. Please open a file first.", "Error");
+      return;
+    }
+
+    // Get selected column
+    int selectedColumn = dataTable.getSelectedColumn();
+    if (selectedColumn < 0) {
+      Messages.showInfoMessage("Please select a column to delete.", "Info");
+      return;
+    }
+
+    // Convert view column index to model column index
+    int modelColumnIndex = dataTable.convertColumnIndexToModel(selectedColumn);
+    
+    if (modelColumnIndex < 0 || modelColumnIndex >= tableModel.getColumnCount()) {
+      Messages.showErrorDialog("Invalid column selection.", "Error");
+      return;
+    }
+
+    String columnName = tableModel.getColumnName(modelColumnIndex);
+    
+    // Check if it's the last column
+    if (tableModel.getColumnCount() <= 1) {
+      Messages.showErrorDialog("Cannot delete the last column. A table must have at least one column.", "Error");
+      return;
+    }
+
+    // Confirm deletion
+    int confirm = Messages.showYesNoDialog(
+        "Are you sure you want to delete column '" + columnName + "'?\n" +
+        "This action cannot be undone.",
+        "Confirm Column Deletion",
+        Messages.getQuestionIcon());
+
+    if (confirm == Messages.YES) {
+      try {
+        tableModel.deleteColumn(modelColumnIndex);
+        
+        // Reconfigure cell editors after column deletion
+        configureCellEditors();
+        
+        updateStatusLabel();
+        LOGGER.info("Deleted column: " + columnName);
+      } catch (IllegalArgumentException e) {
+        LOGGER.error("Error deleting column", e);
+        Messages.showErrorDialog("Error deleting column: " + e.getMessage(), "Error");
+      } catch (Exception e) {
+        LOGGER.error("Error deleting column", e);
+        Messages.showErrorDialog("Error deleting column: " + e.getMessage(), "Error");
+      }
     }
   }
 
@@ -364,6 +508,47 @@ public class ParquetToolWindow extends JPanel {
     } catch (Exception e) {
       LOGGER.error("Error saving Parquet file", e);
       Messages.showErrorDialog("Error saving file: " + e.getMessage(), "Error");
+    }
+  }
+
+  private void configureCellEditors() {
+    // Configure a text field editor for all columns
+    // This is especially important for DATE and TIMESTAMP columns
+    // which don't have default editors in JTable
+    TableCellEditor textEditor = new DefaultCellEditor(new JTextField()) {
+      @Override
+      public Component getTableCellEditorComponent(JTable table, Object value,
+          boolean isSelected, int row, int column) {
+        Component component = super.getTableCellEditorComponent(table, value, isSelected, row, column);
+        JTextField textField = (JTextField) component;
+        
+        // Convert value to String for display
+        if (value == null) {
+          textField.setText("");
+        } else if (value instanceof LocalDate) {
+          textField.setText(value.toString());
+        } else if (value instanceof LocalDateTime) {
+          textField.setText(value.toString());
+        } else {
+          textField.setText(value.toString());
+        }
+        
+        return component;
+      }
+      
+      @Override
+      public Object getCellEditorValue() {
+        // Get the value from the text field
+        JTextField textField = (JTextField) getComponent();
+        String text = textField.getText();
+        // Return as String - the model will handle conversion
+        return text;
+      }
+    };
+    
+    // Apply the editor to all columns
+    for (int i = 0; i < tableModel.getColumnCount(); i++) {
+      dataTable.getColumnModel().getColumn(i).setCellEditor(textEditor);
     }
   }
 

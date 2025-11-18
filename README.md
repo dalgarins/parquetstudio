@@ -14,9 +14,12 @@ Parquet Studio is an IntelliJ IDEA plugin that provides a powerful, user-friendl
 - **✏️ Edit Cells** - Direct cell editing with automatic type validation (INTEGER, DOUBLE, BOOLEAN, VARCHAR, DATE, TIMESTAMP)
 - **➕ Add Rows** - Insert new rows with type-appropriate default values
 - **🗑️ Delete Rows** - Remove selected rows with confirmation
+- **➕ Add Columns** - Add new columns to your Parquet table with custom name and type
+- **🗑️ Delete Columns** - Remove columns from your Parquet table with confirmation
 - **🔍 Search** - Real-time search across all columns with filtering
 - **💾 Save As** - Export edited data to new Parquet files using DuckDB
 - **📊 Type Safety** - Automatic type conversion and validation
+- **📅 Flexible Date/Time Parsing** - Supports multiple TIMESTAMP formats (ISO, space-separated, with milliseconds)
 - **⚡ Performance** - Powered by DuckDB for fast read/write operations
 
 ## 🚀 Quick Start
@@ -36,8 +39,10 @@ Parquet Studio is an IntelliJ IDEA plugin that provides a powerful, user-friendl
 3. Edit cells directly in the table
 4. Use **Add Row** to insert new rows
 5. Use **Delete Row** to remove selected rows
-6. Use **Search** to filter rows
-7. Click **Save As...** to export your changes
+6. Use **Add Column** to add new columns with custom name and type
+7. Use **Delete Column** to remove columns (select column header first)
+8. Use **Search** to filter rows
+9. Click **Save As...** to export your changes
 
 ## 📖 Documentation
 
