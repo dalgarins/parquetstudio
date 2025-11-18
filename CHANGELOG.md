@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2024-12-19
+
 ### Added
 - **Icon-based UI** - Replaced text buttons with intuitive icons for better UX
 - **Automatic File Association** - Double-click `.parquet` files to open them automatically in Parquet Studio
@@ -19,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created `ParquetEditorService` to separate business logic from UI
   - Reorganized packages: `model/`, `service/`, `ui/`, `filetype/`, `factory/`
   - Improved code organization and separation of concerns
+
+[1.3.0]: https://github.com/jhordyhuaman/parquetstudio/releases/tag/v1.3.0
 
 ## [1.2.0] - 2024-11-18
 
