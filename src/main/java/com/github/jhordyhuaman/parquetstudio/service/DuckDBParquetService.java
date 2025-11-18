@@ -11,8 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.jhordyhuaman.parquetstudio;
+package com.github.jhordyhuaman.parquetstudio.service;
 
+import com.github.jhordyhuaman.parquetstudio.model.ParquetData;
 import com.intellij.openapi.diagnostic.Logger;
 import java.io.File;
 import java.sql.*;

@@ -15,6 +15,8 @@ package com.github.jhordyhuaman.parquetstudio;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.jhordyhuaman.parquetstudio.ui.ParquetEditorPanel;
+import com.github.jhordyhuaman.parquetstudio.ui.ParquetToolWindow;
 import java.awt.Component;
 import java.io.File;
 import org.junit.jupiter.api.BeforeEach;

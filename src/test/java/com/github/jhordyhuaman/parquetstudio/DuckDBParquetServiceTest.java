@@ -16,6 +16,8 @@ package com.github.jhordyhuaman.parquetstudio;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.github.jhordyhuaman.parquetstudio.model.ParquetData;
+import com.github.jhordyhuaman.parquetstudio.service.DuckDBParquetService;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

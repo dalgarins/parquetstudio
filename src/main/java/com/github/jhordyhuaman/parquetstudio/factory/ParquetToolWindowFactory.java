@@ -11,8 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.jhordyhuaman.parquetstudio;
+package com.github.jhordyhuaman.parquetstudio.factory;
 
+import com.github.jhordyhuaman.parquetstudio.ui.ParquetToolWindow;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;

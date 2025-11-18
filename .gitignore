@@ -53,3 +53,5 @@ heapdump.*
 javacore.*
 Snap.*
 *.hprof
+.github_token
+.github_token

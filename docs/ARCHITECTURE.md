@@ -1,78 +1,131 @@
 # Architecture
 
-This document describes the architecture and design decisions of Parquet Studio.
+This document describes the current architecture and design decisions of Parquet Studio.
 
 ## Overview
 
-Parquet Studio is built on the IntelliJ Platform Plugin SDK and uses DuckDB for Parquet file operations. The architecture follows a clean separation of concerns with distinct layers for data access, business logic, and presentation.
+Parquet Studio is built on the IntelliJ Platform Plugin SDK and uses DuckDB for Parquet file operations. The architecture follows a **simple 3-layer separation**: UI, Service, and Model layers.
 
 ## Architecture Layers
 
 ```
-┌─────────────────────────────────────┐
-│   Presentation Layer (Swing UI)     │
-│   - ParquetToolWindow               │
-│   - ParquetTableModel               │
-└─────────────────────────────────────┘
-              │
-              ▼
-┌─────────────────────────────────────┐
-│   Service Layer                     │
-│   - DuckDBParquetService            │
-└─────────────────────────────────────┘
-              │
-              ▼
-┌─────────────────────────────────────┐
-│   Data Layer                        │
-│   - DuckDB JDBC                     │
-│   - Parquet Files                   │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      UI LAYER                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │   Panels     │  │   Dialogs    │  │  Components  │       │
+│  │  (Swing UI)  │  │  (Dialogs)   │  │  (Reusable)  │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+│         │                  │                  │             │
+│         └──────────────────┼──────────────────┘            │
+│                            │                                │
+└────────────────────────────┼────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    SERVICE LAYER                             │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │         ParquetEditorService                        │   │
+│  │  - Carga/guarda archivos                            │   │
+│  │  - Operaciones CRUD                                 │   │
+│  │  - Validaciones                                     │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                            │                                 │
+└────────────────────────────┼─────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      MODEL LAYER                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ ParquetData  │  │ParquetTable  │  │  DuckDB      │     │
+│  │  (DTO)       │  │  Model       │  │  Service     │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Package Structure
+
+```
+com.github.jhordyhuaman.parquetstudio/
+├── model/                          # Modelos de datos
+│   ├── ParquetData.java           # DTO para datos
+│   └── ParquetTableModel.java     # Modelo de tabla Swing
+│
+├── service/                        # Servicios (lógica de negocio)
+│   ├── ParquetEditorService.java   # Servicio principal del editor
+│   │                              # - Carga/guarda archivos
+│   │                              # - Operaciones CRUD
+│   │                              # - Validaciones
+│   └── DuckDBParquetService.java  # Servicio DuckDB (datos)
+│
+├── ui/                            # Componentes de UI
+│   ├── ParquetEditorPanel.java    # Panel del editor (solo UI)
+│   ├── ParquetToolWindow.java    # Ventana principal (solo UI)
+│   └── AddColumnDialog.java       # Diálogo agregar columna
+│
+├── filetype/                      # Gestión de tipos de archivo
+│   ├── ParquetFileType.java
+│   ├── ParquetFileTypeFactory.java
+│   └── ParquetLanguage.java
+│
+└── factory/                        # Factories
+    ├── ParquetToolWindowFactory.java
+    ├── ParquetEditorProvider.java
+    └── ParquetFileEditor.java
 ```
 
 ## Components
 
-### ParquetToolWindow
+### UI Layer
 
-**Location**: `com.github.jhordyhuaman.parquetstudio.ParquetToolWindow`
+#### ParquetToolWindow
+**Location**: `com.github.jhordyhuaman.parquetstudio.ui.ParquetToolWindow`
 
-**Responsibility**: Main UI component that orchestrates user interactions.
+**Responsibility**: Main container managing multiple editor tabs.
 
 **Key Features**:
-- Toolbar with action buttons
-- JTable for data display
+- `JTabbedPane` for multiple file editing
+- File opening with duplicate prevention
+- Tab management (open, close, switch)
+
+#### ParquetEditorPanel
+**Location**: `com.github.jhordyhuaman.parquetstudio.ui.ParquetEditorPanel`
+
+**Responsibility**: UI component for editing a single Parquet file.
+
+**Key Features**:
+- `JTable` for data display
+- Toolbar with action buttons (search, add row, add column, delete, save)
 - Status bar for feedback
-- Event handling for user actions
+- Cell editors for DATE/TIMESTAMP types
 
 **Dependencies**:
-- `DuckDBParquetService` for data operations
+- `ParquetEditorService` for business logic
 - `ParquetTableModel` for table data
-- IntelliJ Platform UI components
 
-### ParquetTableModel
+### Service Layer
 
-**Location**: `com.github.jhordyhuaman.parquetstudio.ParquetTableModel`
+#### ParquetEditorService
+**Location**: `com.github.jhordyhuaman.parquetstudio.service.ParquetEditorService`
 
-**Responsibility**: Swing table model with type validation and CRUD operations.
+**Responsibility**: Business logic for Parquet editor operations.
 
-**Key Features**:
-- Extends `AbstractTableModel`
-- Type-safe cell editing
-- Row addition/deletion
-- Data conversion and validation
+**Key Methods**:
+- `loadParquetFile(File)` - Loads a Parquet file
+- `addRow()` - Adds a new row
+- `addColumn(String, String)` - Adds a new column
+- `deleteColumn(int)` - Deletes a column
+- `deleteRows(int[])` - Deletes rows
+- `saveParquetFile(File)` - Saves to Parquet file
 
-**Type Support**:
-- INTEGER, BIGINT → Integer, Long
-- DOUBLE → Double
-- BOOLEAN → Boolean
-- VARCHAR → String
-- DATE → LocalDate
-- TIMESTAMP → LocalDateTime
+**Features**:
+- Validates data before operations
+- Manages table model state
+- Coordinates with DuckDBParquetService
 
-### DuckDBParquetService
+#### DuckDBParquetService
+**Location**: `com.github.jhordyhuaman.parquetstudio.service.DuckDBParquetService`
 
-**Location**: `com.github.jhordyhuaman.parquetstudio.DuckDBParquetService`
-
-**Responsibility**: All DuckDB operations for reading and writing Parquet files.
+**Responsibility**: DuckDB operations for reading and writing Parquet files.
 
 **Key Methods**:
 - `loadParquet(File)` - Loads Parquet file and returns ParquetData
@@ -85,9 +138,10 @@ Parquet Studio is built on the IntelliJ Platform Plugin SDK and uses DuckDB for 
 - Uses `COPY TO ... FORMAT PARQUET` for writing
 - Handles type normalization (DuckDB → Standard types)
 
-### ParquetData
+### Model Layer
 
-**Location**: `com.github.jhordyhuaman.parquetstudio.ParquetData`
+#### ParquetData
+**Location**: `com.github.jhordyhuaman.parquetstudio.model.ParquetData`
 
 **Responsibility**: Data transfer object for Parquet file contents.
 
@@ -95,6 +149,25 @@ Parquet Studio is built on the IntelliJ Platform Plugin SDK and uses DuckDB for 
 - `List<String> columnNames` - Column names
 - `List<String> columnTypes` - Column types (normalized)
 - `List<List<Object>> rows` - Row data
+
+#### ParquetTableModel
+**Location**: `com.github.jhordyhuaman.parquetstudio.model.ParquetTableModel`
+
+**Responsibility**: Swing table model with type validation and CRUD operations.
+
+**Key Features**:
+- Extends `AbstractTableModel`
+- Type-safe cell editing
+- Row/column addition/deletion
+- Data conversion and validation
+
+**Type Support**:
+- INTEGER, BIGINT → Integer, Long
+- DOUBLE → Double
+- BOOLEAN → Boolean
+- VARCHAR → String
+- DATE → LocalDate
+- TIMESTAMP → LocalDateTime
 
 ## Data Flow
 
@@ -105,9 +178,11 @@ User clicks "Open Parquet"
     ↓
 ParquetToolWindow.openParquetFile()
     ↓
-ParquetToolWindow.loadParquetFile()
+ParquetEditorPanel.loadParquetFile()
     ↓
 SwingWorker.doInBackground()
+    ↓
+ParquetEditorService.loadParquetFile()
     ↓
 DuckDBParquetService.loadParquet()
     ↓
@@ -116,9 +191,25 @@ DuckDB: SELECT * FROM read_parquet(?)           (data)
     ↓
 ParquetData created
     ↓
+ParquetEditorService.initializeTableModel()
+    ↓
 ParquetTableModel initialized
     ↓
 JTable updated
+```
+
+### Adding a Row
+
+```
+User clicks "Add Row"
+    ↓
+ParquetEditorPanel.addRow()
+    ↓
+ParquetEditorService.addRow()
+    ↓
+ParquetTableModel.addRow()
+    ↓
+UI updated
 ```
 
 ### Saving a Parquet File
@@ -126,11 +217,13 @@ JTable updated
 ```
 User clicks "Save As..."
     ↓
-ParquetToolWindow.saveAsParquet()
-    ↓
-ParquetTableModel.toParquetData()
+ParquetEditorPanel.saveAsParquet()
     ↓
 SwingWorker.doInBackground()
+    ↓
+ParquetEditorService.saveParquetFile()
+    ↓
+ParquetTableModel.toParquetData()
     ↓
 DuckDBParquetService.saveParquet()
     ↓
@@ -142,6 +235,13 @@ File saved
 ```
 
 ## Design Decisions
+
+### Why 3-Layer Architecture?
+
+- **Simplicity**: Easy to understand and maintain
+- **Separation**: Clear boundaries between UI and business logic
+- **Testability**: Business logic can be tested without Swing
+- **Collaboration**: Different developers can work on UI and services independently
 
 ### Why DuckDB?
 
@@ -188,6 +288,13 @@ The DuckDB driver is loaded in a static initializer with comprehensive logging:
 - Lists available drivers for debugging
 - Provides clear error messages
 
+### Service Layer Validation
+
+`ParquetEditorService` validates operations before execution:
+- Checks if data is loaded
+- Validates column indices
+- Prevents invalid operations (e.g., deleting last column)
+
 ### SQL Operations
 
 All SQL operations are wrapped in try-catch blocks:
@@ -208,10 +315,10 @@ Potential improvements:
 - Streaming for large files
 - Column type editing
 - Schema modification
-- Multiple file tabs
 - Export to other formats (CSV, JSON)
 - Undo/redo functionality
 - Column sorting and filtering
+- Search improvements
 
 ## Dependencies
 
@@ -239,4 +346,3 @@ Potential improvements:
 - SQL injection prevention via PreparedStatement
 - No network operations
 - All operations are local
-
