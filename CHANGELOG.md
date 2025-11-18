@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Improved
 - **Modern UI** - Cleaner interface with icon-only buttons and tooltips
 - **Better Integration** - Seamless integration with IntelliJ IDEA's file system
+- **Architecture Refactoring** - Reorganized code into 3-layer architecture (UI, Service, Model) for better maintainability and testability
+  - Created `ParquetEditorService` to separate business logic from UI
+  - Reorganized packages: `model/`, `service/`, `ui/`, `filetype/`, `factory/`
+  - Improved code organization and separation of concerns
 
 ## [1.2.0] - 2024-11-18
 
