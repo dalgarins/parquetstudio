@@ -11,6 +11,7 @@ Parquet Studio is an IntelliJ IDEA plugin that provides a powerful, user-friendl
 ## ✨ Features
 
 - **📂 Open Parquet Files** - Load and view Parquet files with automatic schema detection
+- **📑 Multiple Tabs** - Edit multiple Parquet files simultaneously with tab-based navigation
 - **✏️ Edit Cells** - Direct cell editing with automatic type validation (INTEGER, DOUBLE, BOOLEAN, VARCHAR, DATE, TIMESTAMP)
 - **➕ Add Rows** - Insert new rows with type-appropriate default values
 - **🗑️ Delete Rows** - Remove selected rows with confirmation
@@ -35,14 +36,17 @@ Parquet Studio is an IntelliJ IDEA plugin that provides a powerful, user-friendl
 ### Usage
 
 1. Open the **Parquet Studio** tool window (View → Tool Windows → Parquet Studio)
-2. Click **Open Parquet** to select a `.parquet` file
-3. Edit cells directly in the table
-4. Use **Add Row** to insert new rows
-5. Use **Delete Row** to remove selected rows
-6. Use **Add Column** to add new columns with custom name and type
-7. Use **Delete Column** to remove columns (select column header first)
-8. Use **Search** to filter rows
-9. Click **Save As...** to export your changes
+2. Click **Open Parquet** to select a `.parquet` file (opens in a new tab)
+3. Open multiple files - each opens in its own tab for simultaneous editing
+4. Switch between files by clicking on tabs
+5. Close tabs by right-clicking on the tab or using the **Close Tab** button
+6. Edit cells directly in the table
+7. Use **Add Row** to insert new rows
+8. Use **Delete Row** to remove selected rows
+9. Use **Add Column** to add new columns with custom name and type
+10. Use **Delete Column** to remove columns (select column header first)
+11. Use **Search** to filter rows (works independently per tab)
+12. Click **Save As...** to export your changes
 
 ## 📖 Documentation
 
@@ -84,7 +88,8 @@ Parquet Studio uses a clean, modular architecture:
 
 - **DuckDBParquetService** - Handles all DuckDB operations (read/write Parquet)
 - **ParquetTableModel** - Swing table model with type validation
-- **ParquetToolWindow** - Main UI component with toolbar and table
+- **ParquetToolWindow** - Main UI component with tabbed interface for multiple files
+- **ParquetEditorPanel** - Individual editor panel for each Parquet file (one per tab)
 - **ParquetData** - Data transfer object for Parquet contents
 
 See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed information.
