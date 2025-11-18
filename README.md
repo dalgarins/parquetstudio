@@ -35,23 +35,24 @@ Parquet Studio is an IntelliJ IDEA plugin that provides a powerful, user-friendl
 
 ### Usage
 
-1. Open the **Parquet Studio** tool window (View → Tool Windows → Parquet Studio)
-2. Click **Open Parquet** to select a `.parquet` file (opens in a new tab)
-3. Open multiple files - each opens in its own tab for simultaneous editing
-4. Switch between files by clicking on tabs
-5. Close tabs by right-clicking on the tab or using the **Close Tab** button
-6. Edit cells directly in the table
-7. Use **Add Row** to insert new rows
-8. Use **Delete Row** to remove selected rows
-9. Use **Add Column** to add new columns with custom name and type
-10. Use **Delete Column** to remove columns (select column header first)
-11. Use **Search** to filter rows (works independently per tab)
-12. Click **Save As...** to export your changes
+1. **Automatic File Opening**: Double-click any `.parquet` file in your project - it will automatically open in Parquet Studio!
+2. **Manual Opening**: Open the **Parquet Studio** tool window (View → Tool Windows → Parquet Studio) and click the **Open** icon to select a `.parquet` file
+3. **Multiple Files**: Each file opens in its own tab for simultaneous editing
+4. **Navigation**: Switch between files by clicking on tabs
+5. **Close Tabs**: Right-click on a tab or use the **Close** icon button
+6. **Edit Cells**: Double-click any cell to edit directly in the table
+7. **Add Row**: Click the **Add** icon to insert new rows
+8. **Delete Row**: Select rows and click the **Remove** icon to delete them
+9. **Add Column**: Click the **Add Column** icon to add new columns with custom name and type
+10. **Delete Column**: Select a column header and click the **Remove** icon to delete it
+11. **Search**: Use the search field and click the **Search** icon to filter rows (works independently per tab)
+12. **Save**: Click the **Save** icon to export your changes to a new Parquet file
 
 ## 📖 Documentation
 
 - [Getting Started](docs/GET_STARTED.md) - Detailed setup and usage guide
-- [Architecture](docs/ARCHITECTURE.md) - Technical architecture and design decisions
+- [Architecture](docs/ARCHITECTURE.md) - Current technical architecture and design decisions
+- [Icons Guide](docs/ICONS_GUIDE.md) - Quick guide for downloading and using icons
 - [Contributing](docs/CONTRIBUTING.md) - Guidelines for contributing to the project
 - [Releasing](docs/RELEASING.md) - Release process and versioning
 - [Plugin Development Guide](docs/PLUGIN_DEV_GUIDE.md) - Development setup and best practices

@@ -11,9 +11,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.jhordyhuaman.parquetstudio;
+package com.github.jhordyhuaman.parquetstudio.ui;
 
+import com.github.jhordyhuaman.parquetstudio.model.ParquetData;
+import com.github.jhordyhuaman.parquetstudio.model.ParquetTableModel;
+import com.github.jhordyhuaman.parquetstudio.service.ParquetEditorService;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.table.JBTable;
 import java.awt.BorderLayout;
@@ -35,7 +40,7 @@ import java.time.LocalDateTime;
 public class ParquetEditorPanel extends JPanel {
   private static final Logger LOGGER = Logger.getInstance(ParquetEditorPanel.class);
 
-  private final DuckDBParquetService service;
+  private final ParquetEditorService editorService;
   private ParquetTableModel tableModel;
   private JBTable dataTable;
   private JLabel statusLabel;
@@ -47,10 +52,9 @@ public class ParquetEditorPanel extends JPanel {
   private JButton deleteColumnButton;
   private JButton saveAsButton;
   private TableRowSorter<TableModel> rowSorter;
-  private File currentFile;
 
   public ParquetEditorPanel() {
-    this.service = new DuckDBParquetService();
+    this.editorService = new ParquetEditorService();
     initializeUI();
   }
 
@@ -60,7 +64,7 @@ public class ParquetEditorPanel extends JPanel {
    * @return the current file, or null if no file is loaded
    */
   public File getCurrentFile() {
-    return currentFile;
+    return editorService.getCurrentFile();
   }
 
   /**
@@ -69,7 +73,7 @@ public class ParquetEditorPanel extends JPanel {
    * @return true if a file is loaded, false otherwise
    */
   public boolean hasFile() {
-    return currentFile != null;
+    return editorService.hasFile();
   }
 
   /**
@@ -78,8 +82,9 @@ public class ParquetEditorPanel extends JPanel {
    * @return the display name
    */
   public String getDisplayName() {
-    if (currentFile != null) {
-      return currentFile.getName();
+    File file = editorService.getCurrentFile();
+    if (file != null) {
+      return file.getName();
     }
     return "Untitled";
   }
@@ -116,38 +121,45 @@ public class ParquetEditorPanel extends JPanel {
     searchField.addActionListener(e -> performSearch());
     toolbar.add(searchField);
 
-    searchButton = new JButton("Search");
+    // Search - using custom icon with theme support
+    searchButton = new JButton(IconLoader.getIcon("/icons/ui/search/search.svg", ParquetEditorPanel.class));
+    searchButton.setToolTipText("Search");
     searchButton.addActionListener(e -> performSearch());
     toolbar.add(searchButton);
 
     toolbar.add(new JSeparator(SwingConstants.VERTICAL));
 
-    // Add Row
-    addRowButton = new JButton("Add Row");
+    // Add Row - using custom icon with theme support
+    addRowButton = new JButton(IconLoader.getIcon("/icons/ui/addRowAbove/addRowAbove.svg", ParquetEditorPanel.class));
+    addRowButton.setToolTipText("Add Row");
     addRowButton.addActionListener(e -> addRow());
     toolbar.add(addRowButton);
 
-    // Add Column
-    addColumnButton = new JButton("Add Column");
+    // Delete Row - using custom dropColumn icon with theme support
+    deleteRowButton = new JButton(IconLoader.getIcon("/icons/ui/dropSequence/dropSequence.svg", ParquetEditorPanel.class));
+    deleteRowButton.setToolTipText("Delete Row");
+    deleteRowButton.addActionListener(e -> deleteSelectedRows());
+    toolbar.add(deleteRowButton);
+    
+    toolbar.add(new JSeparator(SwingConstants.VERTICAL));
+
+    // Add Column - using custom createColumn icon with theme support
+    addColumnButton = new JButton(IconLoader.getIcon("/icons/ui/createColumn/createColumn.svg", ParquetEditorPanel.class));
+    addColumnButton.setToolTipText("Add Column");
     addColumnButton.addActionListener(e -> addColumn());
     toolbar.add(addColumnButton);
 
-    // Delete Column
-    deleteColumnButton = new JButton("Delete Column");
+    // Delete Column - using custom dropColumn icon with theme support
+    deleteColumnButton = new JButton(IconLoader.getIcon("/icons/ui/dropColumn/dropColumn.svg", ParquetEditorPanel.class));
+    deleteColumnButton.setToolTipText("Delete Column");
     deleteColumnButton.addActionListener(e -> deleteSelectedColumn());
     toolbar.add(deleteColumnButton);
 
     toolbar.add(new JSeparator(SwingConstants.VERTICAL));
 
-    // Delete Row
-    deleteRowButton = new JButton("Delete Row");
-    deleteRowButton.addActionListener(e -> deleteSelectedRows());
-    toolbar.add(deleteRowButton);
-
-    toolbar.add(new JSeparator(SwingConstants.VERTICAL));
-
-    // Save As
-    saveAsButton = new JButton("Save As...");
+    // Save As - using custom save icon with theme support
+    saveAsButton = new JButton(IconLoader.getIcon("/icons/ui/save/save.svg", ParquetEditorPanel.class));
+    saveAsButton.setToolTipText("Save As...");
     saveAsButton.addActionListener(e -> saveAsParquet());
     toolbar.add(saveAsButton);
 
@@ -178,17 +190,14 @@ public class ParquetEditorPanel extends JPanel {
           new SwingWorker<ParquetData, Void>() {
             @Override
             protected ParquetData doInBackground() throws Exception {
-              return service.loadParquet(file);
+              return editorService.loadParquetFile(file);
             }
 
             @Override
             protected void done() {
               try {
                 ParquetData data = get();
-                currentFile = file;
-
-                tableModel = new ParquetTableModel(
-                    data.getColumnNames(), data.getColumnTypes(), data.getRows());
+                tableModel = editorService.initializeTableModel(data);
                 dataTable.setModel(tableModel);
 
                 // Configure cell editor for all columns (especially needed for DATE and TIMESTAMP)
@@ -245,15 +254,11 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private void addRow() {
-    if (tableModel == null) {
-      Messages.showErrorDialog("No data loaded. Please open a file first.", "Error");
-      return;
-    }
-
     try {
-      int newRowIndex = tableModel.getRowCount();
-      tableModel.addRow();
+      int newRowIndex = editorService.addRow();
+      tableModel = editorService.getTableModel();
       
+      // Update UI to show new row
       if (rowSorter != null && dataTable.getRowSorter() != null) {
         int viewIndex = dataTable.convertRowIndexToView(newRowIndex);
         dataTable.setRowSelectionInterval(viewIndex, viewIndex);
@@ -264,6 +269,8 @@ public class ParquetEditorPanel extends JPanel {
       }
       
       updateStatusLabel();
+    } catch (IllegalStateException e) {
+      Messages.showErrorDialog(e.getMessage(), "Error");
     } catch (Exception e) {
       LOGGER.error("Error adding row", e);
       Messages.showErrorDialog("Error adding row: " + e.getMessage(), "Error");
@@ -271,48 +278,17 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private void addColumn() {
-    if (tableModel == null) {
-      Messages.showErrorDialog("No data loaded. Please open a file first.", "Error");
-      return;
-    }
-
     try {
       AddColumnDialog dialog = new AddColumnDialog(this);
       if (dialog.showAndGet()) {
         String columnName = dialog.getColumnName();
         String columnType = dialog.getColumnType();
         
-        tableModel.addColumn(columnName, columnType);
+        int newColumnIndex = editorService.addColumn(columnName, columnType);
+        tableModel = editorService.getTableModel();
         
         // Configure cell editor for the new column
-        TableCellEditor textEditor = new DefaultCellEditor(new JTextField()) {
-          @Override
-          public Component getTableCellEditorComponent(JTable table, Object value,
-              boolean isSelected, int row, int column) {
-            Component component = super.getTableCellEditorComponent(table, value, isSelected, row, column);
-            JTextField textField = (JTextField) component;
-            
-            // Convert value to String for display
-            if (value == null) {
-              textField.setText("");
-            } else if (value instanceof LocalDate) {
-              textField.setText(value.toString());
-            } else if (value instanceof LocalDateTime) {
-              textField.setText(value.toString());
-            } else {
-              textField.setText(value.toString());
-            }
-            
-            return component;
-          }
-          
-          @Override
-          public Object getCellEditorValue() {
-            JTextField textField = (JTextField) getComponent();
-            return textField.getText();
-          }
-        };
-        int newColumnIndex = tableModel.getColumnCount() - 1;
+        TableCellEditor textEditor = createTextCellEditor();
         if (newColumnIndex >= 0) {
           dataTable.getColumnModel().getColumn(newColumnIndex).setCellEditor(textEditor);
           
@@ -325,11 +301,9 @@ public class ParquetEditorPanel extends JPanel {
         }
         
         updateStatusLabel();
-        LOGGER.info("Added column: " + columnName + " (" + columnType + ")");
       }
-    } catch (IllegalArgumentException e) {
-      LOGGER.error("Error adding column", e);
-      Messages.showErrorDialog("Error adding column: " + e.getMessage(), "Error");
+    } catch (IllegalStateException | IllegalArgumentException e) {
+      Messages.showErrorDialog(e.getMessage(), "Error");
     } catch (Exception e) {
       LOGGER.error("Error adding column", e);
       Messages.showErrorDialog("Error adding column: " + e.getMessage(), "Error");
@@ -337,11 +311,6 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private void deleteSelectedColumn() {
-    if (tableModel == null) {
-      Messages.showErrorDialog("No data loaded. Please open a file first.", "Error");
-      return;
-    }
-
     // Get selected column
     int selectedColumn = dataTable.getSelectedColumn();
     if (selectedColumn < 0) {
@@ -357,13 +326,7 @@ public class ParquetEditorPanel extends JPanel {
       return;
     }
 
-    String columnName = tableModel.getColumnName(modelColumnIndex);
-    
-    // Check if it's the last column
-    if (tableModel.getColumnCount() <= 1) {
-      Messages.showErrorDialog("Cannot delete the last column. A table must have at least one column.", "Error");
-      return;
-    }
+    String columnName = editorService.getColumnName(modelColumnIndex);
 
     // Confirm deletion
     int confirm = Messages.showYesNoDialog(
@@ -374,16 +337,15 @@ public class ParquetEditorPanel extends JPanel {
 
     if (confirm == Messages.YES) {
       try {
-        tableModel.deleteColumn(modelColumnIndex);
+        editorService.deleteColumn(modelColumnIndex);
+        tableModel = editorService.getTableModel();
         
         // Reconfigure cell editors after column deletion
         configureCellEditors();
         
         updateStatusLabel();
-        LOGGER.info("Deleted column: " + columnName);
-      } catch (IllegalArgumentException e) {
-        LOGGER.error("Error deleting column", e);
-        Messages.showErrorDialog("Error deleting column: " + e.getMessage(), "Error");
+      } catch (IllegalStateException | IllegalArgumentException e) {
+        Messages.showErrorDialog(e.getMessage(), "Error");
       } catch (Exception e) {
         LOGGER.error("Error deleting column", e);
         Messages.showErrorDialog("Error deleting column: " + e.getMessage(), "Error");
@@ -392,11 +354,6 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private void deleteSelectedRows() {
-    if (tableModel == null) {
-      Messages.showErrorDialog("No data loaded. Please open a file first.", "Error");
-      return;
-    }
-
     int[] selectedRows = dataTable.getSelectedRows();
     if (selectedRows.length == 0) {
       Messages.showInfoMessage("Please select at least one row to delete.", "Info");
@@ -411,24 +368,30 @@ public class ParquetEditorPanel extends JPanel {
 
     if (confirm == Messages.YES) {
       try {
+        // Convert view indices to model indices
         int[] modelIndices = new int[selectedRows.length];
         for (int i = 0; i < selectedRows.length; i++) {
           modelIndices[i] = dataTable.convertRowIndexToModel(selectedRows[i]);
         }
 
+        // Temporarily disable sorter for deletion
         RowSorter<?> currentSorter = dataTable.getRowSorter();
         boolean sorterWasEnabled = currentSorter != null;
         if (sorterWasEnabled) {
           dataTable.setRowSorter(null);
         }
 
-        tableModel.deleteRows(modelIndices);
+        editorService.deleteRows(modelIndices);
+        tableModel = editorService.getTableModel();
 
+        // Re-enable sorter if it was enabled
         if (sorterWasEnabled && rowSorter != null) {
           dataTable.setRowSorter(rowSorter);
         }
 
         updateStatusLabel();
+      } catch (IllegalStateException e) {
+        Messages.showErrorDialog(e.getMessage(), "Error");
       } catch (Exception e) {
         if (rowSorter != null && dataTable.getRowSorter() == null) {
           dataTable.setRowSorter(rowSorter);
@@ -440,14 +403,10 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private void saveAsParquet() {
-    if (tableModel == null) {
-      Messages.showErrorDialog("No data loaded. Please open a file first.", "Error");
-      return;
-    }
-
     try {
       JFileChooser fileChooser = new JFileChooser();
       fileChooser.setDialogTitle("Save As Parquet");
+      File currentFile = editorService.getCurrentFile();
       if (currentFile != null) {
         fileChooser.setCurrentDirectory(currentFile.getParentFile());
       }
@@ -490,8 +449,7 @@ public class ParquetEditorPanel extends JPanel {
             new SwingWorker<Void, Void>() {
               @Override
               protected Void doInBackground() throws Exception {
-                ParquetData data = tableModel.toParquetData();
-                service.saveParquet(outputFile, data);
+                editorService.saveParquetFile(outputFile);
                 return null;
               }
 
@@ -511,17 +469,19 @@ public class ParquetEditorPanel extends JPanel {
             };
         saveWorker.execute();
       }
+    } catch (IllegalStateException e) {
+      Messages.showErrorDialog(e.getMessage(), "Error");
     } catch (Exception e) {
       LOGGER.error("Error saving Parquet file", e);
       Messages.showErrorDialog("Error saving file: " + e.getMessage(), "Error");
     }
   }
 
-  private void configureCellEditors() {
+  private TableCellEditor createTextCellEditor() {
     // Configure a text field editor for all columns
     // This is especially important for DATE and TIMESTAMP columns
     // which don't have default editors in JTable
-    TableCellEditor textEditor = new DefaultCellEditor(new JTextField()) {
+    return new DefaultCellEditor(new JTextField()) {
       @Override
       public Component getTableCellEditorComponent(JTable table, Object value,
           boolean isSelected, int row, int column) {
@@ -551,6 +511,10 @@ public class ParquetEditorPanel extends JPanel {
         return text;
       }
     };
+  }
+
+  private void configureCellEditors() {
+    TableCellEditor textEditor = createTextCellEditor();
     
     // Apply the editor to all columns
     for (int i = 0; i < tableModel.getColumnCount(); i++) {
@@ -559,8 +523,9 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private void updateStatusLabel() {
-    if (tableModel != null && currentFile != null) {
-      int rowCount = tableModel.getRowCount();
+    if (tableModel != null && editorService.hasFile()) {
+      File currentFile = editorService.getCurrentFile();
+      int rowCount = editorService.getRowCount();
       int filteredCount =
           rowSorter != null && rowSorter.getRowFilter() != null
               ? rowSorter.getViewRowCount()

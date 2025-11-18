@@ -5,6 +5,17 @@ All notable changes to Parquet Studio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Icon-based UI** - Replaced text buttons with intuitive icons for better UX
+- **Automatic File Association** - Double-click `.parquet` files to open them automatically in Parquet Studio
+- **File Type Recognition** - IntelliJ IDEA now recognizes `.parquet` files as Parquet Studio files
+
+### Improved
+- **Modern UI** - Cleaner interface with icon-only buttons and tooltips
+- **Better Integration** - Seamless integration with IntelliJ IDEA's file system
+
 ## [1.2.0] - 2024-11-18
 
 ### Added
