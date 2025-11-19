@@ -117,10 +117,14 @@ public class DuckDBParquetService implements DataConvertService {
     }
   }
 
+    public void saveParquet(File file, ParquetData data) throws Exception {
+        saveParquet(file, data, null);
+    }
+
   /**
    * Saves ParquetData to a new Parquet file.
    */
-  public void saveParquet(File file, ParquetData data) throws Exception {
+  public void saveParquet(File file, ParquetData data, String schemaPath) throws Exception {
     LOGGER.info("Saving Parquet file: " + file.getAbsolutePath());
 
     if (data.getColumnNames().isEmpty()) {
@@ -131,7 +135,7 @@ public class DuckDBParquetService implements DataConvertService {
       throw new SQLException("DuckDB JDBC driver not loaded. Check classpath for org.duckdb:duckdb_jdbc dependency.");
     }
 
-    convertTypes(data, "D:\\test_schema.output.schema");
+    if(schemaPath != null) convertTypes(data, schemaPath);
 
     LOGGER.info("Attempting to create connection to: " + DUCKDB_JDBC_URL);
     try (Connection conn = DriverManager.getConnection(DUCKDB_JDBC_URL)) {

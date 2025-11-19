@@ -1,6 +1,7 @@
 package com.github.jhordyhuaman.parquetstudio;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.intellij.openapi.diagnostic.Logger;
 
@@ -61,10 +62,16 @@ public interface DataConvertService {
             LOGGER.info("Loaded Schema: \n" + schemaStructure.toString());
         }catch (JsonSyntaxException e){
             LOGGER.error(e.getMessage());
+
             throw new Exception(e.getMessage());
         }
 
         return schemaStructure;
+    }
+
+    default String convertToJsonString(Object schema) {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        return gson.toJson(schema);
     }
 
     default void convertTypes(ParquetData data, String filePath) throws Exception{

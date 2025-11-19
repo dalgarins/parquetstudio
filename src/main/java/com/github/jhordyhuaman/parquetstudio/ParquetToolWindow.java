@@ -16,13 +16,17 @@ package com.github.jhordyhuaman.parquetstudio;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.table.JBTable;
-import java.awt.BorderLayout;
+import java.awt.*;
 import java.io.File;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.RowFilter;
+import javax.swing.text.*;
 
 /**
  * Main tool window panel for Parquet Studio.
@@ -39,8 +43,16 @@ public class ParquetToolWindow extends JPanel {
   private JButton addRowButton;
   private JButton deleteRowButton;
   private JButton saveAsButton;
+  private JPanel containerPanel;
+  private JPanel dataPanel;
+  private JPanel schemaPanel;
+  private JButton goSchemaButton;
+  private JButton goDataButton;
+  private JCheckBox schemaCheckBox;
+  private JTextPane jsonTextPane;
   private TableRowSorter<TableModel> rowSorter;
   private File currentFile;
+  private File schemaFile;
 
   public ParquetToolWindow() {
     this.service = new DuckDBParquetService();
@@ -49,21 +61,42 @@ public class ParquetToolWindow extends JPanel {
 
   private void initializeUI() {
     setLayout(new BorderLayout());
+    containerPanel = new JPanel(new BorderLayout());
 
+    // SECTION: Schema Panel
+    schemaPanel = new JPanel(new BorderLayout());
+    schemaPanel.setName("SCHEMA_PANEL");
+    schemaPanel.setVisible(false);
+
+    JPanel schemaToolbarPanel = createSchemaToolbar();
+    schemaPanel.add(schemaToolbarPanel, BorderLayout.NORTH);
+
+    // Json viewer
+    JScrollPane jsonScrollPanel = createJsonViewPanel();
+    schemaPanel.add(jsonScrollPanel, BorderLayout.CENTER);
+    containerPanel.add(schemaPanel, BorderLayout.NORTH);
+
+    // SECTION: Data Panel
+    dataPanel = new JPanel(new BorderLayout());
+    dataPanel.setName("DATA_PANEL");
     // Toolbar
     JPanel toolbarPanel = createToolbar();
-    add(toolbarPanel, BorderLayout.NORTH);
+    dataPanel.add(toolbarPanel, BorderLayout.NORTH);
 
     // Table
     dataTable = new JBTable();
     dataTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     dataTable.setFillsViewportHeight(true);
     JScrollPane tableScrollPane = new JScrollPane(dataTable);
-    add(tableScrollPane, BorderLayout.CENTER);
+    dataPanel.add(tableScrollPane, BorderLayout.CENTER);
 
-    // Status bar
+    containerPanel.add(dataPanel, BorderLayout.CENTER);
+
+    // SECTION: Status Bar
     statusLabel = new JLabel("Ready. Open a Parquet file to begin.");
     statusLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+    add(containerPanel, BorderLayout.NORTH);
     add(statusLabel, BorderLayout.SOUTH);
   }
 
@@ -107,11 +140,147 @@ public class ParquetToolWindow extends JPanel {
     // Save As
     saveAsButton = new JButton("Save As...");
     saveAsButton.addActionListener(e -> saveAsParquet());
+
+    goSchemaButton = new JButton("View Schema");
+    goSchemaButton.addActionListener(e -> changePanel() );
+
     toolbar.add(saveAsButton);
+    toolbar.add(goSchemaButton);
 
     updateButtonStates(false);
 
     return toolbar;
+  }
+
+    private JPanel createSchemaToolbar() {
+        JPanel schemaToolbar = new JPanel();
+        schemaToolbar.setLayout(new BoxLayout(schemaToolbar, BoxLayout.X_AXIS));
+        schemaToolbar.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        // Load schema
+        JButton loadSchemaButton = new JButton("Load Schema");
+        loadSchemaButton.addActionListener(e -> loadSchemaFile());
+        schemaToolbar.add(loadSchemaButton);
+        schemaToolbar.add(new JSeparator(SwingConstants.VERTICAL));
+
+        schemaCheckBox = new JCheckBox("Write with this schema");
+        schemaCheckBox.setEnabled(false);
+        schemaToolbar.add(schemaCheckBox);
+        schemaToolbar.add(new JSeparator(SwingConstants.VERTICAL));
+
+        goDataButton = new JButton("Back Data View");
+        goDataButton.addActionListener(e -> changePanel() );
+        schemaToolbar.add(goDataButton);
+
+        return schemaToolbar;
+    }
+
+  private void changePanel() {
+    dataPanel.setVisible(!dataPanel.isVisible());
+    schemaPanel.setVisible(!schemaPanel.isVisible());
+  }
+
+  private JScrollPane createJsonViewPanel(){
+      jsonTextPane = new JTextPane();
+      jsonTextPane.setEditable(false);
+      jsonTextPane.setText("SCHEMA OF PARQUET");
+
+      return new JScrollPane(jsonTextPane);
+  }
+
+    private void showSchema(File schemaFile) throws Exception {
+        if(schemaFile == null) return;
+
+        DataConvertService.SchemaStructure schemaStructure = service.readSchemaFile(schemaFile.getAbsolutePath());
+        String schemString = service.convertToJsonString(schemaStructure);
+        applyJsonHighlighting(schemString);
+    }
+
+    private void applyJsonHighlighting(String json) {
+        StyledDocument doc = jsonTextPane.getStyledDocument();
+
+        StyleContext sc = StyleContext.getDefaultStyleContext();
+        AttributeSet keyColor = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, new Color(230, 162, 60));
+        AttributeSet stringColor = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, new Color(40, 170, 60));
+        AttributeSet numberColor = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, new Color(190, 60, 190));
+        AttributeSet braceColor = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, new Color(60, 120, 200));
+
+        try {
+            doc.remove(0, jsonTextPane.getText().length());
+            doc.insertString(0, json, null);
+
+            jsonTextPane.setPreferredSize(jsonTextPane.getUI().getPreferredSize(jsonTextPane));
+            jsonTextPane.revalidate();
+            jsonTextPane.repaint();
+        } catch (Exception e) { e.printStackTrace(); }
+
+        applyPattern(json, "\"(.*?)\"\\s*:", keyColor, doc);     // keys
+        applyPattern(json, ":\\s*\".*?\"", stringColor, doc);    // strings
+        applyPattern(json, ":\\s*(\\d+\\.\\d+|\\d+)", numberColor, doc); // números
+        applyPattern(json, "\\b(true|false|null)\\b", numberColor, doc); // boolean / null
+        applyPattern(json, "[\\{\\}\\[\\]]", braceColor, doc);   // llaves y corchetes
+    }
+
+    private void applyPattern(String text, String regex, AttributeSet style, StyledDocument doc) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            doc.setCharacterAttributes(matcher.start(), matcher.end() - matcher.start(), style, false);
+        }
+    }
+
+    private boolean isValidSchemaFile(File schemaFile){
+      if (schemaFile == null || !schemaFile.exists()) {
+          Messages.showErrorDialog("Select a schema file that exists.", "Error Schema");
+          return false;
+      }
+      String[] validFormats = {".schema", ".json"};
+      String filePath = schemaFile.getPath();
+
+      boolean isValid = Arrays.stream(validFormats).anyMatch(filePath::endsWith);
+      if(!isValid){
+          Messages.showErrorDialog("Select a valid format: .schema or .json.", "Error Schema");
+          return false;
+      }
+      return true;
+  }
+
+  private void loadSchemaFile() {
+      JFileChooser fileChooser = new JFileChooser();
+      fileChooser.setDialogTitle("Select schema file");
+      if (schemaFile != null) {
+          fileChooser.setCurrentDirectory(schemaFile.getParentFile());
+      }
+
+      fileChooser.setFileFilter(new FileFilter() {
+          @Override
+          public boolean accept(File f) {
+              String fileName = f.getName().toLowerCase();
+              return f.isDirectory() || fileName.endsWith(".schema") || fileName.endsWith(".json");
+          }
+
+          @Override
+          public String getDescription() {
+              return "Schema Files (*.schema)";
+          }
+      });
+
+      int result = fileChooser.showSaveDialog(this);
+      if (result == JFileChooser.APPROVE_OPTION) {
+          File selectedFile = fileChooser.getSelectedFile();
+          if( !isValidSchemaFile(selectedFile) ) return;
+
+          schemaFile = selectedFile;
+          schemaCheckBox.setSelected(true);
+          schemaCheckBox.setEnabled(true);
+          try {
+              showSchema(schemaFile);
+          } catch (Exception e) {
+              Messages.showWarningDialog("Can't read the schema.", "Schema File");
+              LOGGER.error(e.getMessage());
+          }
+      }
   }
 
   private void updateButtonStates(boolean hasData) {
@@ -119,6 +288,7 @@ public class ParquetToolWindow extends JPanel {
     if (addRowButton != null) addRowButton.setEnabled(hasData);
     if (deleteRowButton != null) deleteRowButton.setEnabled(hasData);
     if (saveAsButton != null) saveAsButton.setEnabled(hasData);
+    if (goSchemaButton != null) goSchemaButton.setEnabled(hasData);
     if (searchField != null) searchField.setEnabled(hasData);
   }
 
@@ -142,6 +312,7 @@ public class ParquetToolWindow extends JPanel {
     if (result == JFileChooser.APPROVE_OPTION) {
       File selectedFile = fileChooser.getSelectedFile();
       loadParquetFile(selectedFile);
+
     }
   }
 
@@ -341,7 +512,12 @@ public class ParquetToolWindow extends JPanel {
               @Override
               protected Void doInBackground() throws Exception {
                 ParquetData data = tableModel.toParquetData();
-                service.saveParquet(outputFile, data);
+                if(schemaCheckBox.isSelected()){
+                    if( isValidSchemaFile(schemaFile) ) service.saveParquet(outputFile, data, schemaFile.getPath());
+                }else{
+                    service.saveParquet(outputFile, data);
+                }
+
                 return null;
               }
 
