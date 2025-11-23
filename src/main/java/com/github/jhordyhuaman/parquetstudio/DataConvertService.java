@@ -3,10 +3,7 @@ package com.github.jhordyhuaman.parquetstudio;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-
 import com.intellij.openapi.diagnostic.Logger;
-
-
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,9 +21,8 @@ public interface DataConvertService {
             this.name = name;
             this.type = type;
 
-            setAndGetType();
+            applyStandartType();
         }
-
         @Override
         public String toString() {
             return "%s (%s)".formatted(name, type.toString());
@@ -41,27 +37,29 @@ public interface DataConvertService {
                 default -> type;
             };
         }
-        public String setAndGetType(){
+        public void applyStandartType(){
             boolean isList = type instanceof List;
-            if(!isList) return type.toString();
+            if(!isList) {
+                type = equivalentType(type.toString());
+                return;
+            }
 
             List<String> lisType = (List<String>) type;
             String typeFounded = lisType.stream().filter( x -> !x.equals("null")).findFirst().orElse(null);
             type = equivalentType(typeFounded);
-            return type.toString();
         }
     }
 
     public class SchemaItemTransform extends SchemaItem {
-        Object type2Transform;
+        Object typeTransform;
 
         public SchemaItemTransform(String name, Object type, Object typeDestiny) {
             super(name, type);
-            this.type2Transform = typeDestiny;
+            this.typeTransform = typeDestiny;
         }
         @Override
         public String toString() {
-            return "%s (%s -> %s)".formatted(name, type.toString(), type2Transform.toString());
+            return "%s (%s -> %s)".formatted(name, type.toString(), typeTransform.toString());
         }
     }
 
@@ -73,7 +71,7 @@ public interface DataConvertService {
             return fields.stream().filter(item -> item.name.equals(name)).findFirst().orElse(null);
         }
         public void changesTypesFields(){
-            fields.forEach(item -> item.setAndGetType());
+            fields.forEach(SchemaItem::applyStandartType);
         }
 
         public SchemaStructure toTransform(SchemaStructure schemaDestiny){
@@ -127,7 +125,7 @@ public interface DataConvertService {
         return gson.toJson(schema);
     }
 
-    default void convertTypes(ParquetData data, SchemaStructure schemaStructure) {
+    default void applyConvertTypes(ParquetData data, SchemaStructure schemaStructure) {
         List<String> columnsName = data.getColumnNames();
 
         for(String columName : columnsName){
@@ -137,13 +135,13 @@ public interface DataConvertService {
             LOGGER.warn("Column %s | %s -> %s".formatted(
                     columName,
                     data.getColumnTypes().get(index),
-                    schemaItem != null ? schemaItem.type2Transform : null)
+                    schemaItem != null ? schemaItem.typeTransform : null)
             );
 
             if(schemaItem != null){
-                if(schemaItem.type2Transform == null) continue;
+                if(String.valueOf(schemaItem.typeTransform).equals("null")) continue;
 
-                String valor = data.getColumnTypes().set(index, String.valueOf(schemaItem.type2Transform));
+                data.getColumnTypes().set(index, String.valueOf(schemaItem.typeTransform));
             }
         }
     }

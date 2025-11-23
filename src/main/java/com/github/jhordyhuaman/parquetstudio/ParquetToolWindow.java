@@ -588,10 +588,12 @@ public class ParquetToolWindow extends JPanel {
 
                     if(strictModeCheckBox.isSelected()){
                         if(!complyStrictMode()) throw new Exception(Constants.Message.SCHEMA_AND_PARQUET_NOT_SAME_COLUMNS);
-                        LOGGER.info("writing parquet with other schema...");
+                        LOGGER.info("writing parquet with other schema (strict mode)...");
                     }
+                    LOGGER.warn("Saving with other schema....");
                     service.saveParquet(outputFile, data, schemaStructureTransform);
                 }else{
+                    LOGGER.warn("Saving with same schema...");
                     service.saveParquet(outputFile, data);
                 }
                   LOGGER.info("The parquet was written.");

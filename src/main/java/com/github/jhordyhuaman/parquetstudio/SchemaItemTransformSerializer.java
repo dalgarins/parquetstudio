@@ -9,14 +9,8 @@ public class SchemaItemTransformSerializer implements JsonSerializer<DataConvert
         JsonObject json = new JsonObject();
 
         json.addProperty("name", schemaItem.name);
-        json.add("type", schemaItem.type != null
-                ? context.serialize(schemaItem.type)
-                : JsonNull.INSTANCE
-        );
-        json.add("typeTransform", schemaItem.type2Transform != null
-                ? context.serialize(schemaItem.type2Transform)
-                : JsonNull.INSTANCE
-        );
+        json.addProperty("type", String.valueOf(schemaItem.type));
+        json.addProperty("typeTransform", String.valueOf(schemaItem.typeTransform));
 
         return json;
     }
