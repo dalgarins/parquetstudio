@@ -18,21 +18,23 @@ import com.github.jhordyhuaman.parquetstudio.model.ParquetTableModel;
 import com.github.jhordyhuaman.parquetstudio.model.SchemaStructure;
 import com.intellij.openapi.diagnostic.Logger;
 import java.io.File;
+import java.util.List;
 
 /**
  * Service layer for Parquet editor operations.
  * Contains business logic for CRUD operations, validations, and file management.
  */
-public class ParquetEditorService implements DataConvertService {
+public class ParquetEditorService {
   private static final Logger LOGGER = Logger.getInstance(ParquetEditorService.class);
   
   private final DuckDBParquetService duckDBService;
+  private final DataSchemaService dataSchemaService;
   private ParquetTableModel tableModel;
   private File currentFile;
-  private File schemaFile;
 
   public ParquetEditorService() {
-    this.duckDBService = new DuckDBParquetService();
+      this.duckDBService = new DuckDBParquetService();
+      this.dataSchemaService = new DataSchemaService();
   }
 
   /**
@@ -49,6 +51,19 @@ public class ParquetEditorService implements DataConvertService {
     return data;
   }
 
+    public String generateTransformSchemaString() throws Exception {
+      return this.dataSchemaService.generateTransformSchemaString();
+    }
+
+    public String generateOriginalSchemaString(List<String> columnNames, List<String> columnTypes) throws Exception{
+      return this.dataSchemaService.generateOriginalSchemaString(columnNames, columnTypes);
+    }
+    public boolean isSameNumberOfColumns(){
+      return this.dataSchemaService.isSameNumberOfColumns();
+    }
+    public SchemaStructure getSchemaStructureOriginal(){ return this.dataSchemaService.getSchemaStructureOriginal();}
+    public SchemaStructure getSchemaStructureTransform(){ return this.dataSchemaService.getSchemaStructureTransform();}
+    public void setNullSchemaTransform(){ this.dataSchemaService.setNullSchemaTransform(); }
   /**
    * Initializes the table model with loaded data.
    *
@@ -96,18 +111,21 @@ public class ParquetEditorService implements DataConvertService {
    *
    * @return the current schema file, or null if no file is loaded
   */
-  public File getCurrentSchemaFile() { return this.schemaFile; }
+  public File getCurrentSchemaFile() { return this.dataSchemaService.schemaFile; }
   /**
    * Sets the schema file.
    *
   */
-  public void setSchemaFile(File schemaFile){ this.schemaFile = schemaFile; }
+  public ParquetEditorService setSchemaFile(File schemaFile){
+      this.dataSchemaService.schemaFile = schemaFile;
+      return this;
+  }
   /**
    * Checks if a schema file is currently loaded.
    *
    * @return true if a schema file is loaded, false otherwise
   */
-  public boolean hasSchemaFile() { return this.schemaFile != null; }
+  public boolean hasSchemaFile() { return this.dataSchemaService.schemaFile != null; }
 
   /**
    * Validates that data is loaded before performing operations.
@@ -207,7 +225,6 @@ public class ParquetEditorService implements DataConvertService {
    */
   public void saveParquetFile(File outputFile, SchemaStructure schema) throws IllegalStateException, Exception {
     validateDataLoaded();
-    //ParquetData data = tableModel.toParquetData();
 
     ParquetData dataClone = new ParquetData(tableModel.toParquetData());
     LOGGER.info("Saving Parquet file: " + outputFile.getAbsolutePath());
@@ -216,7 +233,7 @@ public class ParquetEditorService implements DataConvertService {
       throw new IllegalArgumentException("No columns to save");
     }
 
-    if(schema != null) applyConvertTypes(dataClone, schema);
+    if(schema != null) this.dataSchemaService.applyConvertTypes(dataClone, schema);
 
     duckDBService.saveParquet(outputFile, dataClone);
     LOGGER.info("Saved Parquet file: " + outputFile.getAbsolutePath());

@@ -14,7 +14,6 @@
 package com.github.jhordyhuaman.parquetstudio.ui;
 
 import com.github.jhordyhuaman.parquetstudio.Constants;
-import com.github.jhordyhuaman.parquetstudio.model.SchemaStructure;
 import com.github.jhordyhuaman.parquetstudio.model.ParquetData;
 import com.github.jhordyhuaman.parquetstudio.model.ParquetTableModel;
 import com.github.jhordyhuaman.parquetstudio.service.ParquetEditorService;
@@ -63,8 +62,6 @@ public class ParquetEditorPanel extends JPanel {
   private JButton goSchemaButton;
   private JButton goDataButton;
   private boolean showingPanelData = true;
-  private SchemaStructure schemaStructureOriginal;
-  private SchemaStructure schemaStructureTransform;
   private JCheckBox schemaCheckBox;
   private JCheckBox strictModeCheckBox;
   private JLabel strictModeJLabel;
@@ -274,26 +271,13 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private void writeOriginalSchemaInPanel(java.util.List<String> columnNames, java.util.List<String> columnTypes) throws Exception{
-      SchemaStructure schemaStructure = SchemaStructure.schemaFromLists(columnNames, columnTypes);
-      String schemString = editorService.convertToJsonString(schemaStructure);
+      String schemString = editorService.generateOriginalSchemaString(columnNames, columnTypes);
       applyJsonHighlighting(schemString);
-      schemaStructureOriginal = schemaStructure;
-
-      LOGGER.info("Write schema of parquet in " + Constants.SCHEMA_PANEL);
   }
 
-  private void writeTransformationSchemaInPanel() throws Exception {
-      if(schemaStructureOriginal == null){
-        throw new Exception("First load a file parquet");
-      }
-      SchemaStructure schemaStructure = SchemaStructure.schemaFromFile(editorService.getCurrentSchemaFile().getAbsolutePath());
-      schemaStructure.changesTypesFields();
-
-      schemaStructureTransform = schemaStructureOriginal.toTransform(schemaStructure);
-      String schemString = editorService.convertToJsonString(schemaStructureTransform);
+  private void writeTransformationSchemaInPanel(File selectedFile) throws Exception {
+      String schemString = editorService.setSchemaFile(selectedFile).generateTransformSchemaString();
       applyJsonHighlighting(schemString);
-
-      LOGGER.warn("Write other schema in " + Constants.SCHEMA_PANEL);
   }
 
   private void applyJsonHighlighting(String json) {
@@ -368,8 +352,7 @@ public class ParquetEditorPanel extends JPanel {
           if( !isValidSchemaFile(selectedFile) ) return;
 
           try {
-              editorService.setSchemaFile(selectedFile);
-              writeTransformationSchemaInPanel();
+              writeTransformationSchemaInPanel(selectedFile);
               strictModeCheckBox.setEnabled(true);
 
               if(complyStrictMode()){
@@ -390,12 +373,12 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private boolean complyStrictMode() {
-      if(schemaStructureOriginal == null || schemaStructureTransform == null){
+      if(editorService.getSchemaStructureOriginal() == null || editorService.getSchemaStructureTransform() == null){
           Messages.showErrorDialog("Should load parquet and schema file", "Schema");
           LOGGER.warn("parquet or schema file are not loaded.");
           return false;
       }
-      return schemaStructureOriginal.fields.size() != schemaStructureTransform.fields.size();
+      return editorService.isSameNumberOfColumns();
   }
 
     private void updateButtonStates(boolean hasData) {
@@ -460,7 +443,7 @@ public class ParquetEditorPanel extends JPanel {
   }
 
   private void resetSchemaComponents(){
-      schemaStructureTransform = null;
+      editorService.setNullSchemaTransform();
       editorService.setSchemaFile(null);
 
       schemaCheckBox.setSelected(false);
@@ -702,7 +685,7 @@ public class ParquetEditorPanel extends JPanel {
                         LOGGER.info("writing parquet with other schema (strict mode)...");
                     }
                     LOGGER.warn("Saving with other schema....");
-                    editorService.saveParquetFile(outputFile, schemaStructureTransform);
+                    editorService.saveParquetFile(outputFile, editorService.getSchemaStructureTransform());
                 }else{
                     LOGGER.warn("Saving with same schema...");
                     editorService.saveParquetFile(outputFile, null);
