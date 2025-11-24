@@ -10,7 +10,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Parquet Studio"
                     anchor="right"
-                    factoryClass="com.github.jhordyhuaman.parquetstudio.ParquetToolWindowFactory"
+                    factoryClass="com.github.jhordyhuaman.parquetstudio.factory.ParquetToolWindowFactory"
                     icon="/icons/parquet_studio.svg"/>
+        <fileTypeFactory implementation="com.github.jhordyhuaman.parquetstudio.filetype.ParquetFileTypeFactory"/>
+        <fileEditorProvider implementation="com.github.jhordyhuaman.parquetstudio.factory.ParquetEditorProvider"/>
     </extensions>
 </idea-plugin>

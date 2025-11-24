@@ -11,8 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.jhordyhuaman.parquetstudio;
+package com.github.jhordyhuaman.parquetstudio.service;
 
+import com.github.jhordyhuaman.parquetstudio.model.ParquetData;
 import com.intellij.openapi.diagnostic.Logger;
 import java.io.File;
 import java.sql.*;
@@ -26,7 +27,7 @@ import java.util.Locale;
 /**
  * Service for reading and writing Parquet files using DuckDB.
  */
-public class DuckDBParquetService implements DataConvertService {
+public class DuckDBParquetService {
   private static final Logger LOGGER = Logger.getInstance(DuckDBParquetService.class);
   private static final String DUCKDB_JDBC_URL = "jdbc:duckdb:";
   private static boolean driverLoaded = false;
@@ -117,26 +118,13 @@ public class DuckDBParquetService implements DataConvertService {
     }
   }
 
-    public void saveParquet(File file, ParquetData data) throws Exception {
-        saveParquet(file, data, null);
-    }
-
   /**
    * Saves ParquetData to a new Parquet file.
    */
-  public void saveParquet(File file, ParquetData data, SchemaStructure schema) throws Exception {
-    ParquetData dataClone = new ParquetData(data);
-    LOGGER.info("Saving Parquet file: " + file.getAbsolutePath());
-
-    if (dataClone.getColumnNames().isEmpty()) {
-      throw new IllegalArgumentException("No columns to save");
-    }
-
+  public void saveParquet(File file, ParquetData data) throws Exception {
     if (!driverLoaded) {
       throw new SQLException("DuckDB JDBC driver not loaded. Check classpath for org.duckdb:duckdb_jdbc dependency.");
     }
-
-    if(schema != null) applyConvertTypes(dataClone, schema);
 
     LOGGER.info("Attempting to create connection to: " + DUCKDB_JDBC_URL);
     try (Connection conn = DriverManager.getConnection(DUCKDB_JDBC_URL)) {
@@ -145,10 +133,10 @@ public class DuckDBParquetService implements DataConvertService {
 
       // Create temporary table
       StringBuilder ddl = new StringBuilder("CREATE TABLE ").append(tempTable).append(" (");
-      for (int i = 0; i < dataClone.getColumnNames().size(); i++) {
+      for (int i = 0; i < data.getColumnNames().size(); i++) {
         if (i > 0) ddl.append(", ");
-        String colName = dataClone.getColumnNames().get(i);
-        String colType = dataClone.getColumnTypes().get(i);
+        String colName = data.getColumnNames().get(i);
+        String colType = data.getColumnTypes().get(i);
         ddl.append(escapeIdent(colName)).append(" ").append(colType);
       }
       ddl.append(")");
@@ -158,15 +146,15 @@ public class DuckDBParquetService implements DataConvertService {
 
       // Insert rows
       StringBuilder ins = new StringBuilder("INSERT INTO ").append(tempTable).append(" VALUES (");
-      for (int i = 0; i < dataClone.getColumnNames().size(); i++) {
+      for (int i = 0; i < data.getColumnNames().size(); i++) {
         if (i > 0) ins.append(", ");
         ins.append("?");
       }
       ins.append(")");
 
       try (PreparedStatement ps = conn.prepareStatement(ins.toString())) {
-        for (List<Object> row : dataClone.getRows()) {
-          for (int i = 0; i < dataClone.getColumnNames().size(); i++) {
+        for (List<Object> row : data.getRows()) {
+          for (int i = 0; i < data.getColumnNames().size(); i++) {
             Object val = row.size() > i ? row.get(i) : null;
             setParameter(ps, i + 1, val);
           }
