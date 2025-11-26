@@ -69,8 +69,12 @@ public class ParquetEditorPanel extends JPanel {
   private TableRowSorter<TableModel> rowSorter;
 
   public ParquetEditorPanel() {
+    this(true);
+  }
+
+  public ParquetEditorPanel(boolean initUI) {
     this.editorService = new ParquetEditorService();
-    initializeUI();
+    if(initUI) initializeUI();
   }
 
   /**

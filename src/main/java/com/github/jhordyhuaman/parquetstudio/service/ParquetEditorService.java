@@ -223,16 +223,10 @@ public class ParquetEditorService {
    * @throws IllegalStateException if no data is loaded
    * @throws Exception if saving fails
    */
-  public void saveParquetFile(File outputFile, SchemaStructure schema) throws IllegalStateException, Exception {
+  public void saveParquetFile(File outputFile, SchemaStructure schema) throws Exception {
     validateDataLoaded();
 
     ParquetData dataClone = new ParquetData(tableModel.toParquetData());
-    LOGGER.info("Saving Parquet file: " + outputFile.getAbsolutePath());
-
-    if (dataClone.getColumnNames().isEmpty()) {
-      throw new IllegalArgumentException("No columns to save");
-    }
-
     if(schema != null) this.dataSchemaService.applyConvertTypes(dataClone, schema);
 
     duckDBService.saveParquet(outputFile, dataClone);

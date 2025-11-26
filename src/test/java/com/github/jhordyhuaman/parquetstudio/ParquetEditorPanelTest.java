@@ -27,7 +27,7 @@ class ParquetEditorPanelTest {
 
   @BeforeEach
   void setUp() {
-    editorPanel = new ParquetEditorPanel();
+    editorPanel = new ParquetEditorPanel(false);
   }
 
   @Test

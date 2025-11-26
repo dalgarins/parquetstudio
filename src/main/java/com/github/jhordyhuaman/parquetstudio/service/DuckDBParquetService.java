@@ -122,6 +122,12 @@ public class DuckDBParquetService {
    * Saves ParquetData to a new Parquet file.
    */
   public void saveParquet(File file, ParquetData data) throws Exception {
+    LOGGER.info("Saving Parquet file: " + file.getAbsolutePath());
+
+    if (data.getColumnNames().isEmpty()) {
+      throw new IllegalArgumentException("No columns to save");
+    }
+    
     if (!driverLoaded) {
       throw new SQLException("DuckDB JDBC driver not loaded. Check classpath for org.duckdb:duckdb_jdbc dependency.");
     }
