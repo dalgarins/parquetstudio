@@ -47,14 +47,17 @@ Parquet Studio is built on the IntelliJ Platform Plugin SDK and uses DuckDB for 
 ```
 com.github.jhordyhuaman.parquetstudio/
 ├── model/                          # Modelos de datos
-│   ├── ParquetData.java           # DTO para datos
-│   └── ParquetTableModel.java     # Modelo de tabla Swing
+│   ├── ParquetData.java            # DTO para datos
+│   ├── ParquetTableModel.java      # Modelo de tabla Swing
+│   ├── SchemaStructure.java        # DTO para esquemas (parquet & externos)
+│   └── SchemaItem*.java            # Representación de campos y transformaciones
 │
 ├── service/                        # Servicios (lógica de negocio)
 │   ├── ParquetEditorService.java   # Servicio principal del editor
 │   │                              # - Carga/guarda archivos
 │   │                              # - Operaciones CRUD
 │   │                              # - Validaciones
+│   ├── DataSchemaService.java      # Servicio de lectura/transformación de esquemas
 │   └── DuckDBParquetService.java  # Servicio DuckDB (datos)
 │
 ├── ui/                            # Componentes de UI
@@ -96,6 +99,7 @@ com.github.jhordyhuaman.parquetstudio/
 - `JTable` for data display
 - Toolbar with action buttons (search, add row, add column, delete, save)
 - Status bar for feedback
+- Schema panel to preview the detected schema, load external schemas (`.schema`/`.json`), and toggle strict save mode
 - Cell editors for DATE/TIMESTAMP types
 
 **Dependencies**:
@@ -121,6 +125,7 @@ com.github.jhordyhuaman.parquetstudio/
 - Validates data before operations
 - Manages table model state
 - Coordinates with DuckDBParquetService
+- Delegates schema detection/transform to DataSchemaService
 
 #### DuckDBParquetService
 **Location**: `com.github.jhordyhuaman.parquetstudio.service.DuckDBParquetService`
@@ -137,6 +142,17 @@ com.github.jhordyhuaman.parquetstudio/
 - Uses `read_parquet()` function for reading
 - Uses `COPY TO ... FORMAT PARQUET` for writing
 - Handles type normalization (DuckDB → Standard types)
+
+#### DataSchemaService
+**Location**: `com.github.jhordyhuaman.parquetstudio.service.DataSchemaService`
+
+**Responsibility**: Schema generation, comparison, and transformation when saving with an external schema.
+
+**Key Methods**:
+- `generateOriginalSchemaString(List<String>, List<String>)` - Builds JSON of the detected Parquet schema and stores it as the baseline.
+- `generateTransformSchemaString()` - Loads a user-provided schema file, aligns it with the current columns, and produces a JSON view of source→target types.
+- `applyConvertTypes(ParquetData, SchemaStructure)` - Applies the target types to the data before delegating to DuckDB for writing.
+- `isSameNumberOfColumns()` - Validates column parity for strict mode.
 
 ### Model Layer
 
@@ -168,6 +184,15 @@ com.github.jhordyhuaman.parquetstudio/
 - VARCHAR → String
 - DATE → LocalDate
 - TIMESTAMP → LocalDateTime
+
+#### SchemaStructure / SchemaItem*
+**Location**: `com.github.jhordyhuaman.parquetstudio.model`
+
+**Responsibility**: Hold schema metadata for both detected and external schemas, including per-field type mappings when rewriting.
+
+**Notes**:
+- Supports normalizing types coming from Avro/Parquet (`timestamp_millis` → `timestamp`, `int32` → `integer`, `int64` → `bigint`).
+- `SchemaItemTransformSerializer` handles JSON representation for UI display.
 
 ## Data Flow
 
@@ -232,6 +257,28 @@ DuckDB: INSERT INTO temp_table_xxx VALUES (...)
 DuckDB: COPY (SELECT * FROM temp_table_xxx) TO 'file.parquet' (FORMAT PARQUET)
     ↓
 File saved
+```
+
+### Saving with External Schema
+
+```
+User clicks "View Schema" → "Load Schema"
+    ↓
+ParquetEditorPanel.writeTransformationSchemaInPanel()
+    ↓
+DataSchemaService.generateTransformSchemaString()
+    ↓
+SchemaStructure.schemaFromFile() → toTransform(originalSchema)
+    ↓
+User enables "Write with this schema" (+ strict mode if desired)
+    ↓
+ParquetEditorPanel.saveAsParquet()
+    ↓
+ParquetEditorService.saveParquetFile(outputFile, schemaStructureTransform)
+    ↓
+DataSchemaService.applyConvertTypes() → DuckDBParquetService.saveParquet()
+    ↓
+File saved with target types
 ```
 
 ## Design Decisions
@@ -324,6 +371,7 @@ Potential improvements:
 
 ### Runtime
 - `org.duckdb:duckdb_jdbc:0.10.2` - DuckDB JDBC driver
+- `com.google.code.gson:gson:2.10.1` - JSON parsing/serialization for schemas
 
 ### Platform
 - IntelliJ Platform SDK (provided by plugin framework)

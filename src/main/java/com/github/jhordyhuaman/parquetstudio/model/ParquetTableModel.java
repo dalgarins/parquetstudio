@@ -56,7 +56,8 @@ public class ParquetTableModel extends AbstractTableModel {
   @Override
   public String getColumnName(int column) {
     if (column >= 0 && column < columnNames.size()) {
-      return columnNames.get(column) + " (" + columnTypes.get(column) + ")";
+        String templateColumnName = "<html><center><strong>%s</strong><br><span style='font-size:10px;color:gray;'>%s</span></center></html>";
+        return templateColumnName.formatted(columnNames.get(column), columnTypes.get(column).toLowerCase());
     }
     return "";
   }

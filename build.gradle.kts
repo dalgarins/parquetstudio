@@ -23,6 +23,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.13.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.1")
     testImplementation("org.assertj:assertj-core:3.27.3")
+    implementation("com.google.code.gson:gson:2.10.1")
 }
 
 configurations.implementation {

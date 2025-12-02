@@ -19,6 +19,7 @@ Parquet Studio is an IntelliJ IDEA plugin that provides a powerful, user-friendl
 - **🗑️ Delete Columns** - Remove columns from your Parquet table with confirmation
 - **🔍 Search** - Real-time search across all columns with filtering
 - **💾 Save As** - Export edited data to new Parquet files using DuckDB
+- **📑 Schema View & Rewrite** - Inspect the detected schema, load an external schema file, and save the data using that schema with optional strict column validation
 - **📊 Type Safety** - Automatic type conversion and validation
 - **📅 Flexible Date/Time Parsing** - Supports multiple TIMESTAMP formats (ISO, space-separated, with milliseconds)
 - **⚡ Performance** - Powered by DuckDB for fast read/write operations
@@ -46,7 +47,29 @@ Parquet Studio is an IntelliJ IDEA plugin that provides a powerful, user-friendl
 9. **Add Column**: Click the **Add Column** icon to add new columns with custom name and type
 10. **Delete Column**: Select a column header and click the **Remove** icon to delete it
 11. **Search**: Use the search field and click the **Search** icon to filter rows (works independently per tab)
-12. **Save**: Click the **Save** icon to export your changes to a new Parquet file
+12. **View Schema**: Click **View Schema** to see the detected schema as JSON
+13. **Load External Schema (optional)**: In the Schema view, click **Load Schema** to select a `.schema`/`.json` file; enable **Write with this schema** to save using it, and toggle **All columns are in parquet** to enforce column count parity
+14. **Save**: Click the **Save** icon to export your changes to a new Parquet file
+
+### Working with Schemas
+
+- **Inspect**: Opening a Parquet file now also renders its schema in the **Schema** panel as formatted JSON.
+- **Transform**: Load an external schema (`.schema`/`.json`) to map original columns to target types. The panel shows `current_type -> target_type` for each column.
+- **Strict Mode**: If the loaded schema does not define the same number of fields as the Parquet file, the UI warns you. Enable **All columns are in parquet** to require parity before saving.
+- **Save with Schema**: When **Write with this schema** is enabled, the **Save** action writes the Parquet file using the loaded schema types; otherwise the original schema is used.
+
+Example schema file:
+
+```json
+{
+  "partitions": [],
+  "fields": [
+    { "name": "id", "type": "integer" },
+    { "name": "created_at", "type": "timestamp" },
+    { "name": "description", "type": "varchar" }
+  ]
+}
+```
 
 ## 📖 Documentation
 

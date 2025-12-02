@@ -32,6 +32,7 @@ class ParquetTableModelTest {
   private List<String> columnNames;
   private List<String> columnTypes;
   private List<List<Object>> rows;
+  private String templateColumnName = "<html><center><strong>%s</strong><br><span style='font-size:10px;color:gray;'>%s</span></center></html>";
 
   @BeforeEach
   void setUp() {
@@ -71,9 +72,9 @@ class ParquetTableModelTest {
   @Test
   @DisplayName("Should return correct column names with types")
   void testColumnNames() {
-    assertThat(model.getColumnName(0)).isEqualTo("id (INTEGER)");
-    assertThat(model.getColumnName(1)).isEqualTo("name (VARCHAR)");
-    assertThat(model.getColumnName(2)).isEqualTo("active (BOOLEAN)");
+    assertThat(model.getColumnName(0)).isEqualTo(templateColumnName.formatted("id", "integer"));
+    assertThat(model.getColumnName(1)).isEqualTo(templateColumnName.formatted("name", "varchar"));
+    assertThat(model.getColumnName(2)).isEqualTo(templateColumnName.formatted("active", "boolean"));
   }
 
   @Test
@@ -184,7 +185,7 @@ class ParquetTableModelTest {
     model.addColumn("age", "INTEGER");
 
     assertThat(model.getColumnCount()).isEqualTo(initialColumnCount + 1);
-    assertThat(model.getColumnName(initialColumnCount)).isEqualTo("age (INTEGER)");
+    assertThat(model.getColumnName(initialColumnCount)).isEqualTo(templateColumnName.formatted("age", "integer"));
     // All existing rows should have default value for the new column
     for (int i = 0; i < initialRowCount; i++) {
       assertThat(model.getValueAt(i, initialColumnCount)).isEqualTo(0); // INTEGER default
@@ -197,7 +198,7 @@ class ParquetTableModelTest {
     model.addColumn("description", "VARCHAR");
 
     assertThat(model.getColumnCount()).isEqualTo(4);
-    assertThat(model.getColumnName(3)).isEqualTo("description (VARCHAR)");
+    assertThat(model.getColumnName(3)).isEqualTo( templateColumnName.formatted("description", "varchar"));
     assertThat(model.getValueAt(0, 3)).isEqualTo(""); // VARCHAR default
     assertThat(model.getValueAt(1, 3)).isEqualTo(""); // VARCHAR default
   }
@@ -208,7 +209,7 @@ class ParquetTableModelTest {
     model.addColumn("birth_date", "DATE");
 
     assertThat(model.getColumnCount()).isEqualTo(4);
-    assertThat(model.getColumnName(3)).isEqualTo("birth_date (DATE)");
+    assertThat(model.getColumnName(3)).isEqualTo(templateColumnName.formatted("birth_date", "date"));
     assertThat(model.getValueAt(0, 3)).isNull(); // DATE default
     assertThat(model.getValueAt(1, 3)).isNull(); // DATE default
   }
@@ -219,7 +220,7 @@ class ParquetTableModelTest {
     model.addColumn("created_at", "TIMESTAMP");
 
     assertThat(model.getColumnCount()).isEqualTo(4);
-    assertThat(model.getColumnName(3)).isEqualTo("created_at (TIMESTAMP)");
+    assertThat(model.getColumnName(3)).isEqualTo(templateColumnName.formatted("created_at", "timestamp"));
     assertThat(model.getValueAt(0, 3)).isNull(); // TIMESTAMP default
     assertThat(model.getValueAt(1, 3)).isNull(); // TIMESTAMP default
   }
@@ -230,7 +231,7 @@ class ParquetTableModelTest {
     model.addColumn("price", "DOUBLE");
 
     assertThat(model.getColumnCount()).isEqualTo(4);
-    assertThat(model.getColumnName(3)).isEqualTo("price (DOUBLE)");
+    assertThat(model.getColumnName(3)).isEqualTo(templateColumnName.formatted("price", "double"));
     assertThat(model.getValueAt(0, 3)).isEqualTo(0.0); // DOUBLE default
   }
 
@@ -259,8 +260,8 @@ class ParquetTableModelTest {
     model.deleteColumn(1);
 
     assertThat(model.getColumnCount()).isEqualTo(initialColumnCount - 1);
-    assertThat(model.getColumnName(0)).isEqualTo("id (INTEGER)");
-    assertThat(model.getColumnName(1)).isEqualTo("active (BOOLEAN)");
+    assertThat(model.getColumnName(0)).isEqualTo(templateColumnName.formatted("id", "integer"));
+    assertThat(model.getColumnName(1)).isEqualTo(templateColumnName.formatted("active", "boolean"));
     // Verify that the deleted column's values are removed from all rows
     assertThat(model.getValueAt(0, 0)).isEqualTo(1);
     assertThat(model.getValueAt(0, 1)).isEqualTo(true);
@@ -371,7 +372,7 @@ class ParquetTableModelTest {
 
     // Verify the column was added correctly
     assertThat(model.getColumnCount()).isEqualTo(4);
-    assertThat(model.getColumnName(dateColumnIndex)).contains("DATE");
+    assertThat(model.getColumnName(dateColumnIndex)).contains("date");
     // New DATE columns start with null
     assertThat(model.getValueAt(0, dateColumnIndex)).isNull();
   }
@@ -388,7 +389,7 @@ class ParquetTableModelTest {
 
     // Verify the column was added correctly
     assertThat(model.getColumnCount()).isEqualTo(4);
-    assertThat(model.getColumnName(timestampColumnIndex)).contains("TIMESTAMP");
+    assertThat(model.getColumnName(timestampColumnIndex)).contains("timestamp");
     // New TIMESTAMP columns start with null
     assertThat(model.getValueAt(0, timestampColumnIndex)).isNull();
   }

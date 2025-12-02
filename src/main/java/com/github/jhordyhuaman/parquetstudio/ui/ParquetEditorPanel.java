@@ -13,22 +13,27 @@
  */
 package com.github.jhordyhuaman.parquetstudio.ui;
 
+import com.github.jhordyhuaman.parquetstudio.Constants;
 import com.github.jhordyhuaman.parquetstudio.model.ParquetData;
 import com.github.jhordyhuaman.parquetstudio.model.ParquetTableModel;
 import com.github.jhordyhuaman.parquetstudio.service.ParquetEditorService;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.table.JBTable;
-import java.awt.BorderLayout;
+import java.awt.*;
 import java.io.File;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.RowFilter;
+import javax.swing.text.*;
 import java.awt.Component;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -51,11 +56,25 @@ public class ParquetEditorPanel extends JPanel {
   private JButton deleteRowButton;
   private JButton deleteColumnButton;
   private JButton saveAsButton;
+  private JPanel containerPanel;
+  private JPanel dataPanel;
+  private JPanel schemaPanel;
+  private JButton goSchemaButton;
+  private JButton goDataButton;
+  private boolean showingPanelData = true;
+  private JCheckBox schemaCheckBox;
+  private JCheckBox strictModeCheckBox;
+  private JLabel strictModeJLabel;
+  private JTextPane jsonTextPane;
   private TableRowSorter<TableModel> rowSorter;
 
   public ParquetEditorPanel() {
+    this(true);
+  }
+
+  public ParquetEditorPanel(boolean initUI) {
     this.editorService = new ParquetEditorService();
-    initializeUI();
+    if(initUI) initializeUI();
   }
 
   /**
@@ -91,21 +110,39 @@ public class ParquetEditorPanel extends JPanel {
 
   private void initializeUI() {
     setLayout(new BorderLayout());
+    containerPanel = new JPanel(new CardLayout());
 
+    // SECTION: Data Panel
+    dataPanel = new JPanel(new BorderLayout());
     // Toolbar
     JPanel toolbarPanel = createToolbar();
-    add(toolbarPanel, BorderLayout.NORTH);
+    dataPanel.add(toolbarPanel, BorderLayout.NORTH);
 
     // Table
     dataTable = new JBTable();
     dataTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     dataTable.setFillsViewportHeight(true);
     JScrollPane tableScrollPane = new JScrollPane(dataTable);
-    add(tableScrollPane, BorderLayout.CENTER);
+    dataPanel.add(tableScrollPane, BorderLayout.CENTER);
 
-    // Status bar
+    containerPanel.add(dataPanel, Constants.DATA_PANEL);
+
+    // SECTION: Schema Panel
+    schemaPanel = new JPanel(new BorderLayout());
+
+    JPanel schemaToolbarPanel = createSchemaToolbar();
+    schemaPanel.add(schemaToolbarPanel, BorderLayout.NORTH);
+
+    // Json viewer
+    JScrollPane jsonScrollPanel = createJsonViewPanel();
+    schemaPanel.add(jsonScrollPanel, BorderLayout.CENTER);
+    containerPanel.add(schemaPanel, Constants.SCHEMA_PANEL);
+
+    // SECTION: Status Bar
     statusLabel = new JLabel("Ready. Open a Parquet file to begin.");
     statusLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+    add(containerPanel, BorderLayout.CENTER);
     add(statusLabel, BorderLayout.SOUTH);
   }
 
@@ -140,7 +177,7 @@ public class ParquetEditorPanel extends JPanel {
     deleteRowButton.setToolTipText("Delete Row");
     deleteRowButton.addActionListener(e -> deleteSelectedRows());
     toolbar.add(deleteRowButton);
-    
+
     toolbar.add(new JSeparator(SwingConstants.VERTICAL));
 
     // Add Column - using custom createColumn icon with theme support
@@ -161,20 +198,201 @@ public class ParquetEditorPanel extends JPanel {
     saveAsButton = new JButton(IconLoader.getIcon("/icons/ui/save/save.svg", ParquetEditorPanel.class));
     saveAsButton.setToolTipText("Save As...");
     saveAsButton.addActionListener(e -> saveAsParquet());
+
+    goSchemaButton = new JButton("View Schema");
+    goSchemaButton.addActionListener(e -> changePanel() );
+
     toolbar.add(saveAsButton);
+    toolbar.add(goSchemaButton);
 
     updateButtonStates(false);
 
     return toolbar;
   }
 
-  private void updateButtonStates(boolean hasData) {
+  private JPanel createSchemaToolbar() {
+    JPanel schemaToolbar = new JPanel();
+    schemaToolbar.setLayout(new BoxLayout(schemaToolbar, BoxLayout.X_AXIS));
+    schemaToolbar.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+    // Load schema
+    JButton loadSchemaButton = new JButton("Load Schema");
+    loadSchemaButton.addActionListener(e -> loadSchemaFile());
+    schemaToolbar.add(loadSchemaButton);
+    schemaToolbar.add(new JSeparator(SwingConstants.VERTICAL));
+
+    JPanel checkBoxPanel = new JPanel();
+    checkBoxPanel.setLayout(new BoxLayout(checkBoxPanel, BoxLayout.Y_AXIS));
+
+    schemaCheckBox = new JCheckBox("Write with this schema");
+    schemaCheckBox.setEnabled(false);
+
+    strictModeCheckBox = new JCheckBox("All columns are in parquet");
+    strictModeCheckBox.setEnabled(false);
+    strictModeCheckBox.addActionListener(e -> {
+        if(strictModeCheckBox.isSelected() && !complyStrictMode()){
+            strictModeCheckBox.setSelected(false);
+            strictModeJLabel.setText(Constants.Message.SCHEMA_AND_PARQUET_NOT_SAME_COLUMNS_2);
+            Messages.showWarningDialog(Constants.Message.SCHEMA_AND_PARQUET_NOT_SAME_COLUMNS, "Schema");
+        }
+    });
+
+    checkBoxPanel.add(schemaCheckBox);
+    checkBoxPanel.add(strictModeCheckBox);
+
+    schemaToolbar.add(checkBoxPanel);
+    schemaToolbar.add(new JSeparator(SwingConstants.VERTICAL));
+
+    strictModeJLabel = new JLabel("");
+    strictModeJLabel.setBorder(new EmptyBorder(0, 10, 0, 10));
+    schemaToolbar.add(strictModeJLabel);
+
+    schemaToolbar.add(new JSeparator(SwingConstants.VERTICAL));
+
+    goDataButton = new JButton("Back Data View");
+    goDataButton.addActionListener(e -> changePanel() );
+    schemaToolbar.add(goDataButton);
+
+    return schemaToolbar;
+  }
+
+  private void changePanel() {
+      CardLayout cl = (CardLayout) containerPanel.getLayout();
+      if(showingPanelData){
+          cl.show(containerPanel, Constants.SCHEMA_PANEL);
+      }else{
+          cl.show(containerPanel, Constants.DATA_PANEL);
+      }
+      showingPanelData = !showingPanelData;
+  }
+
+  private JScrollPane createJsonViewPanel(){
+      jsonTextPane = new JTextPane();
+      jsonTextPane.setEditable(false);
+      jsonTextPane.setText("SCHEMA OF PARQUET");
+
+      return new JScrollPane(jsonTextPane);
+  }
+
+  private void writeOriginalSchemaInPanel(java.util.List<String> columnNames, java.util.List<String> columnTypes) throws Exception{
+      String schemString = editorService.generateOriginalSchemaString(columnNames, columnTypes);
+      applyJsonHighlighting(schemString);
+  }
+
+  private void writeTransformationSchemaInPanel(File selectedFile) throws Exception {
+      String schemString = editorService.setSchemaFile(selectedFile).generateTransformSchemaString();
+      applyJsonHighlighting(schemString);
+  }
+
+  private void applyJsonHighlighting(String json) {
+      StyledDocument doc = jsonTextPane.getStyledDocument();
+
+      StyleContext sc = StyleContext.getDefaultStyleContext();
+      AttributeSet keyColor = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, new Color(230, 162, 60));
+      AttributeSet stringColor = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, new Color(40, 170, 60));
+      AttributeSet numberColor = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, new Color(190, 60, 190));
+      AttributeSet braceColor = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, new Color(60, 120, 200));
+
+      try {
+          doc.remove(0, jsonTextPane.getText().length());
+          doc.insertString(0, json, null);
+      } catch (Exception e) { e.printStackTrace(); }
+
+      applyPattern(json, "\"(.*?)\"\\s*:", keyColor, doc);     // keys
+      applyPattern(json, ":\\s*\".*?\"", stringColor, doc);    // strings
+      applyPattern(json, ":\\s*(\\d+\\.\\d+|\\d+)", numberColor, doc); // números
+      applyPattern(json, "\\b(true|false|null)\\b", numberColor, doc); // boolean / null
+      applyPattern(json, "[\\{\\}\\[\\]]", braceColor, doc);   // llaves y corchetes
+  }
+
+    private void applyPattern(String text, String regex, AttributeSet style, StyledDocument doc) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            doc.setCharacterAttributes(matcher.start(), matcher.end() - matcher.start(), style, false);
+        }
+    }
+
+    private boolean isValidSchemaFile(File schemaFile){
+      if (schemaFile == null || !schemaFile.exists()) {
+          Messages.showErrorDialog("Select a schema file that exists.", "Error Schema");
+          return false;
+      }
+      String[] validFormats = {".schema", ".json"};
+      String filePath = schemaFile.getPath();
+
+      boolean isValid = Arrays.stream(validFormats).anyMatch(filePath::endsWith);
+      if(!isValid){
+          Messages.showErrorDialog("Select a valid format: .schema or .json.", "Error Schema");
+          return false;
+      }
+      return true;
+  }
+
+  private void loadSchemaFile() {
+      JFileChooser fileChooser = new JFileChooser();
+      fileChooser.setDialogTitle("Select schema file");
+      if (editorService.hasSchemaFile()) {
+          fileChooser.setCurrentDirectory(editorService.getCurrentSchemaFile().getParentFile());
+      }
+
+      fileChooser.setFileFilter(new FileFilter() {
+          @Override
+          public boolean accept(File f) {
+              String fileName = f.getName().toLowerCase();
+              return f.isDirectory() || fileName.endsWith(".schema") || fileName.endsWith(".json");
+          }
+
+          @Override
+          public String getDescription() {
+              return "Schema Files (*.schema)";
+          }
+      });
+
+      int result = fileChooser.showSaveDialog(this);
+      if (result == JFileChooser.APPROVE_OPTION) {
+          File selectedFile = fileChooser.getSelectedFile();
+          if( !isValidSchemaFile(selectedFile) ) return;
+
+          try {
+              writeTransformationSchemaInPanel(selectedFile);
+              strictModeCheckBox.setEnabled(true);
+
+              if(complyStrictMode()){
+                  strictModeCheckBox.setSelected(true);
+              }else{
+                  strictModeCheckBox.setSelected(false);
+                  strictModeJLabel.setText(Constants.Message.SCHEMA_AND_PARQUET_NOT_SAME_COLUMNS_2);
+                  Messages.showWarningDialog(Constants.Message.SCHEMA_AND_PARQUET_NOT_SAME_COLUMNS, "Schema");
+              }
+          } catch (Exception e) {
+              Messages.showWarningDialog("Can't read the schema.", "Schema File");
+              LOGGER.error(e.getMessage());
+          }
+
+          schemaCheckBox.setSelected(true);
+          schemaCheckBox.setEnabled(true);
+      }
+  }
+
+  private boolean complyStrictMode() {
+      if(editorService.getSchemaStructureOriginal() == null || editorService.getSchemaStructureTransform() == null){
+          Messages.showErrorDialog("Should load parquet and schema file", "Schema");
+          LOGGER.warn("parquet or schema file are not loaded.");
+          return false;
+      }
+      return editorService.isSameNumberOfColumns();
+  }
+
+    private void updateButtonStates(boolean hasData) {
     if (searchButton != null) searchButton.setEnabled(hasData);
     if (addRowButton != null) addRowButton.setEnabled(hasData);
     if (addColumnButton != null) addColumnButton.setEnabled(hasData);
     if (deleteColumnButton != null) deleteColumnButton.setEnabled(hasData);
     if (deleteRowButton != null) deleteRowButton.setEnabled(hasData);
     if (saveAsButton != null) saveAsButton.setEnabled(hasData);
+    if (goSchemaButton != null) goSchemaButton.setEnabled(hasData);
     if (searchField != null) searchField.setEnabled(hasData);
   }
 
@@ -210,6 +428,8 @@ public class ParquetEditorPanel extends JPanel {
                 updateStatusLabel();
 
                 LOGGER.info("Loaded: " + file.getName() + " (" + data.getRows().size() + " rows)");
+                writeOriginalSchemaInPanel(data.getColumnNames(), data.getColumnTypes());
+                resetSchemaComponents();
               } catch (Exception e) {
                 LOGGER.error("Error loading Parquet file", e);
                 Messages.showErrorDialog(
@@ -224,6 +444,17 @@ public class ParquetEditorPanel extends JPanel {
       Messages.showErrorDialog("Error loading Parquet file: " + e.getMessage(), "Error");
       statusLabel.setText("Error loading file.");
     }
+  }
+
+  private void resetSchemaComponents(){
+      editorService.setNullSchemaTransform();
+      editorService.setSchemaFile(null);
+
+      schemaCheckBox.setSelected(false);
+      schemaCheckBox.setEnabled(false);
+
+      strictModeCheckBox.setSelected(false);
+      strictModeCheckBox.setEnabled(false);
   }
 
   private void performSearch() {
@@ -283,15 +514,15 @@ public class ParquetEditorPanel extends JPanel {
       if (dialog.showAndGet()) {
         String columnName = dialog.getColumnName();
         String columnType = dialog.getColumnType();
-        
+
         int newColumnIndex = editorService.addColumn(columnName, columnType);
         tableModel = editorService.getTableModel();
-        
+
         // Configure cell editor for the new column
         TableCellEditor textEditor = createTextCellEditor();
         if (newColumnIndex >= 0) {
           dataTable.getColumnModel().getColumn(newColumnIndex).setCellEditor(textEditor);
-          
+
           // Scroll to the new column
           dataTable.scrollRectToVisible(
               dataTable.getCellRect(0, newColumnIndex, true));
@@ -299,7 +530,7 @@ public class ParquetEditorPanel extends JPanel {
           dataTable.getColumnModel().getSelectionModel()
               .setSelectionInterval(newColumnIndex, newColumnIndex);
         }
-        
+
         updateStatusLabel();
       }
     } catch (IllegalStateException | IllegalArgumentException e) {
@@ -320,7 +551,7 @@ public class ParquetEditorPanel extends JPanel {
 
     // Convert view column index to model column index
     int modelColumnIndex = dataTable.convertColumnIndexToModel(selectedColumn);
-    
+
     if (modelColumnIndex < 0 || modelColumnIndex >= tableModel.getColumnCount()) {
       Messages.showErrorDialog("Invalid column selection.", "Error");
       return;
@@ -339,10 +570,10 @@ public class ParquetEditorPanel extends JPanel {
       try {
         editorService.deleteColumn(modelColumnIndex);
         tableModel = editorService.getTableModel();
-        
+
         // Reconfigure cell editors after column deletion
         configureCellEditors();
-        
+
         updateStatusLabel();
       } catch (IllegalStateException | IllegalArgumentException e) {
         Messages.showErrorDialog(e.getMessage(), "Error");
@@ -449,7 +680,22 @@ public class ParquetEditorPanel extends JPanel {
             new SwingWorker<Void, Void>() {
               @Override
               protected Void doInBackground() throws Exception {
-                editorService.saveParquetFile(outputFile);
+                ParquetData data = tableModel.toParquetData();
+                if(schemaCheckBox.isSelected()){
+                    if( !isValidSchemaFile(editorService.getCurrentSchemaFile()) ) throw new Exception("The schema is not valid.");
+
+                    if(strictModeCheckBox.isSelected()){
+                        if(!complyStrictMode()) throw new Exception(Constants.Message.SCHEMA_AND_PARQUET_NOT_SAME_COLUMNS);
+                        LOGGER.info("writing parquet with other schema (strict mode)...");
+                    }
+                    LOGGER.warn("Saving with other schema....");
+                    editorService.saveParquetFile(outputFile, editorService.getSchemaStructureTransform());
+                }else{
+                    LOGGER.warn("Saving with same schema...");
+                    editorService.saveParquetFile(outputFile, null);
+                }
+                  LOGGER.info("The parquet was written.");
+
                 return null;
               }
 
@@ -462,7 +708,7 @@ public class ParquetEditorPanel extends JPanel {
                       "File saved successfully: " + outputFile.getPath(), "Success");
                 } catch (Exception e) {
                   LOGGER.error("Error saving Parquet file", e);
-                  Messages.showErrorDialog("Error saving file: " + e.getMessage(), "Error");
+                  Messages.showErrorDialog("Error saving file: " + e.getCause().getMessage(), "Error");
                   statusLabel.setText("Error saving file.");
                 }
               }
@@ -487,7 +733,7 @@ public class ParquetEditorPanel extends JPanel {
           boolean isSelected, int row, int column) {
         Component component = super.getTableCellEditorComponent(table, value, isSelected, row, column);
         JTextField textField = (JTextField) component;
-        
+
         // Convert value to String for display
         if (value == null) {
           textField.setText("");
@@ -498,10 +744,10 @@ public class ParquetEditorPanel extends JPanel {
         } else {
           textField.setText(value.toString());
         }
-        
+
         return component;
       }
-      
+
       @Override
       public Object getCellEditorValue() {
         // Get the value from the text field
@@ -515,7 +761,7 @@ public class ParquetEditorPanel extends JPanel {
 
   private void configureCellEditors() {
     TableCellEditor textEditor = createTextCellEditor();
-    
+
     // Apply the editor to all columns
     for (int i = 0; i < tableModel.getColumnCount(); i++) {
       dataTable.getColumnModel().getColumn(i).setCellEditor(textEditor);

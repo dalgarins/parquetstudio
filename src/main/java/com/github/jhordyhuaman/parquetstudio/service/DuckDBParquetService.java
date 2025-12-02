@@ -127,7 +127,7 @@ public class DuckDBParquetService {
     if (data.getColumnNames().isEmpty()) {
       throw new IllegalArgumentException("No columns to save");
     }
-
+    
     if (!driverLoaded) {
       throw new SQLException("DuckDB JDBC driver not loaded. Check classpath for org.duckdb:duckdb_jdbc dependency.");
     }

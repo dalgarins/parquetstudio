@@ -13,6 +13,7 @@
  */
 package com.github.jhordyhuaman.parquetstudio.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,6 +28,12 @@ public class ParquetData {
     this.columnNames = columnNames;
     this.columnTypes = columnTypes;
     this.rows = rows;
+  }
+
+  public ParquetData(ParquetData otherParquet) {
+    this.columnNames = new ArrayList<>(otherParquet.columnNames);
+    this.columnTypes = new ArrayList<>(otherParquet.columnTypes);
+    this.rows = new ArrayList<>(otherParquet.rows);
   }
 
   public List<String> getColumnNames() {
