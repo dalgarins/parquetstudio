@@ -84,6 +84,14 @@ This guide will help you get started with Parquet Studio, from installation to a
 3. Click `Save`
 4. Your edited data is exported as a new Parquet file
 
+### Working with Schemas
+
+1. Click **View Schema** to switch to the schema panel and inspect the detected schema as JSON.
+2. (Optional) Click **Load Schema** to pick a `.schema` or `.json` file with the target schema (field list and types).
+3. Check **Write with this schema** to export using the loaded schema instead of the detected one.
+4. Toggle **All columns are in parquet** to require the loaded schema to define the same number of fields before saving.
+5. Return to **Data View** and click **Save As...**; the save dialog will use the selected schema mode.
+
 ## Supported Data Types
 
 Parquet Studio supports the following DuckDB types:
@@ -152,4 +160,3 @@ If you encounter issues:
 1. Check the [GitHub Issues](https://github.com/jhordyhuaman/parquetstudio/issues)
 2. Create a new issue with details
 3. Include IDE logs if possible
-

@@ -39,11 +39,10 @@ parquetstudio/
 │   ├── main/
 │   │   ├── java/
 │   │   │   └── com/github/jhordyhuaman/parquetstudio/
-│   │   │       ├── DuckDBParquetService.java
-│   │   │       ├── ParquetData.java
-│   │   │       ├── ParquetTableModel.java
-│   │   │       ├── ParquetToolWindow.java
-│   │   │       └── ParquetToolWindowFactory.java
+│   │   │       ├── model/    # ParquetData, ParquetTableModel, SchemaStructure, SchemaItem*
+│   │   │       ├── service/  # ParquetEditorService, DuckDBParquetService, DataSchemaService
+│   │   │       ├── ui/       # ParquetToolWindow, ParquetEditorPanel, AddColumnDialog
+│   │   │       └── SchemaItemTransformSerializer.java
 │   │   └── resources/
 │   │       ├── META-INF/
 │   │       │   └── plugin.xml
@@ -93,9 +92,9 @@ This starts IntelliJ IDEA with the plugin installed in a sandbox environment.
 
 All code is in `com.github.jhordyhuaman.parquetstudio`:
 
-- **Service Layer**: `DuckDBParquetService` - Data operations
-- **Model Layer**: `ParquetTableModel`, `ParquetData` - Data structures
-- **UI Layer**: `ParquetToolWindow`, `ParquetToolWindowFactory` - User interface
+- **Service Layer**: `ParquetEditorService` (editor orchestration), `DuckDBParquetService` (data operations), `DataSchemaService` (schema parsing/transform)
+- **Model Layer**: `ParquetTableModel`, `ParquetData`, `SchemaStructure`/`SchemaItem*` - Data structures
+- **UI Layer**: `ParquetToolWindow`, `ParquetEditorPanel`, `ParquetToolWindowFactory`, dialogs - User interface
 
 ### Key Classes
 
@@ -106,6 +105,13 @@ Handles all DuckDB operations:
 - Connection management
 - SQL execution
 - Type normalization
+
+#### DataSchemaService
+
+Schema helper:
+- Builds the detected schema JSON for UI display
+- Loads external `.schema`/`.json` files
+- Aligns and applies target types before writing Parquet files
 
 #### ParquetTableModel
 
@@ -272,4 +278,3 @@ We use a simple service pattern:
 - Check existing [Issues](https://github.com/jhordyhuaman/parquetstudio/issues)
 - Review [Architecture](ARCHITECTURE.md) docs
 - Open a [Discussion](https://github.com/jhordyhuaman/parquetstudio/discussions)
-

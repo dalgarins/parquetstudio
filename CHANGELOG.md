@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2025-12-02
+
+### Added
+- **Schema Panel** - View the detected Parquet schema as formatted JSON directly in the plugin
+- **External Schema Load** - Load `.schema` / `.json` files to define target types and see `current -> target` mappings
+- **Save with Schema** - Option to write Parquet files using the loaded schema; strict mode validates column count parity before saving
+- **Type Normalization** - Automatic mapping for common Avro/Parquet type variants (e.g., `timestamp_millis` → `timestamp`, `int32` → `integer`)
+
+### Improved
+- Clear warnings and status when the external schema does not match the Parquet columns
+- Updated documentation for schema workflows and developer guidance
+
+[1.4.0]: https://github.com/jhordyhuaman/parquetstudio/releases/tag/v1.4.0
 ## [1.3.0] - 2024-12-19
 
 ### Added
@@ -81,4 +94,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swing-based UI with JBTable
 
 [1.0.0]: https://github.com/jhordyhuaman/parquet-studio/releases/tag/v1.0.0
-
